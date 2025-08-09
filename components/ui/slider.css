@@ -1,43 +1,32 @@
-/* components/ui/slider.css */
+
 .ss-range {
-  --ss-track: #e4e4e7;
-  --ss-fill: #0a0a0a;
-  --ss-thumb: #ffffff;
-  --ss-thumb-border: #d4d4d8;
   width: 100%;
-  height: 1.5rem;
-  background: transparent;
-  cursor: pointer;
   appearance: none;
+  height: 4px;
+  background: rgba(113,113,122,.3);
+  border-radius: 9999px;
+  outline: none;
 }
-@media (prefers-color-scheme: dark) {
-  .ss-range {
-    --ss-track: #3f3f46;
-    --ss-fill: #fafafa;
-    --ss-thumb: #0a0a0a;
-    --ss-thumb-border: #52525b;
-  }
-}
-.ss-range::-webkit-slider-runnable-track { height: 8px; background: var(--ss-track); border-radius: 999px; }
 .ss-range::-webkit-slider-thumb {
-  -webkit-appearance: none; appearance: none;
-  height: 20px; width: 20px; margin-top: -6px;
-  border-radius: 50%; background: var(--ss-thumb);
-  border: 1px solid var(--ss-thumb-border); box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: #18181b;
+  border: 2px solid #fff;
+  cursor: pointer;
+  margin-top: -6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
-.ss-range::-moz-range-track { height: 8px; background: var(--ss-track); border-radius: 999px; }
-.ss-range::-moz-range-progress { height: 8px; background: var(--ss-fill); border-radius: 999px; }
 .ss-range::-moz-range-thumb {
-  height: 20px; width: 20px; border-radius: 50%;
-  background: var(--ss-thumb); border: 1px solid var(--ss-thumb-border);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: #18181b;
+  border: 2px solid #fff;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
-.ss-range::-ms-track { height: 8px; background: transparent; border-color: transparent; color: transparent; }
-.ss-range::-ms-fill-lower { background: var(--ss-fill); border-radius: 999px; }
-.ss-range::-ms-fill-upper { background: var(--ss-track); border-radius: 999px; }
-.ss-range::-ms-thumb {
-  height: 20px; width: 20px; border-radius: 50%;
-  background: var(--ss-thumb); border: 1px solid var(--ss-thumb-border);
-}
-.ss-range:focus { outline: none; }
-.ss-range:focus-visible { box-shadow: 0 0 0 3px rgba(0,0,0,0.08); }
+:root.dark .ss-range::-webkit-slider-thumb, .dark .ss-range::-webkit-slider-thumb { background: #fafafa; border-color: #0a0a0a; }
+:root.dark .ss-range::-moz-range-thumb, .dark .ss-range::-moz-range-thumb { background: #fafafa; border-color: #0a0a0a; }

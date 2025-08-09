@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useRef } from "react";
@@ -7,17 +8,13 @@ export interface SliderProps {
   min?: number;
   max?: number;
   step?: number;
-  value: number;
-  onChange: (v: number) => void; // fires on every tick (use to mirror UI via refs)
-  onCommit?: (v: number) => void; // fires on release / Enter / arrows
+  value: number;                    // external committed value
+  onChange: (v: number) => void;    // fires while dragging (local mirrors only)
+  onCommit?: (v: number) => void;   // fires on release / Enter / arrows
   ariaLabel?: string;
   className?: string;
 }
 
-/**
- * Uncontrolled native slider to guarantee smooth dragging.
- * - defaultValue drives the element; we sync imperatively if `value` changes.
- */
 export default function Slider({
   min = 0,
   max = 100,
@@ -57,15 +54,9 @@ export default function Slider({
         const v = Number(e.currentTarget.value);
         onChange(v);
       }}
-      onPointerUp={(e) =>
-        commitNow(Number((e.currentTarget as HTMLInputElement).value))
-      }
-      onMouseUp={(e) =>
-        commitNow(Number((e.currentTarget as HTMLInputElement).value))
-      }
-      onTouchEnd={(e) =>
-        commitNow(Number((e.currentTarget as HTMLInputElement).value))
-      }
+      onPointerUp={(e) => commitNow(Number((e.currentTarget as HTMLInputElement).value))}
+      onMouseUp={(e) => commitNow(Number((e.currentTarget as HTMLInputElement).value))}
+      onTouchEnd={(e) => commitNow(Number((e.currentTarget as HTMLInputElement).value))}
       onKeyUp={(e) => {
         if (
           e.key === "ArrowLeft" ||

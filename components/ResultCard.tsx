@@ -1,12 +1,10 @@
+
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { Recommendation, Airport, Preference } from "@/lib/types";
 import { formatLocal } from "@/lib/time";
 import SunSparkline from "@/components/SunSparkline";
-import Timeline from "@/components/Timeline";
-import { detectCityPassBysFromSamples } from "@/lib/cities";
-import cities from "@/lib/cities.json";
 
 type Props = {
   rec: Recommendation | null;
@@ -17,24 +15,6 @@ type Props = {
 
 export default function ResultCard({ rec, origin, dest, preference }: Props) {
   const [copied, setCopied] = useState(false);
-
-  // Compute pass-bys from samples; keep client-only and memoized.
-  // Important: call this hook on every render (even if rec is null) to keep hook order stable.
-  const passBys = useMemo(() => {
-    try {
-      const samples = rec?.samples;
-      if (!samples || samples.length === 0) return [];
-      return detectCityPassBysFromSamples(samples as any, cities as any, {
-        thresholdKm: 75,
-        minSeparationMinutes: 15,
-        stepMinutes: 5,
-      });
-    } catch {
-      return [];
-    }
-  }, [rec?.samples]);
-
-  // Now it is safe to early-return without breaking hook order.
   if (!rec) return null;
 
   const total = rec.leftMinutes + rec.rightMinutes;
@@ -57,7 +37,6 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
       ? `minimizes direct sun (~${100 - sunPct}%)`
       : `sun on that side for ~${sunPct}% of the flight`;
 
-  // Normalize whatever we got ("A", "F", "A (left)", "F (right)", etc.)
   const sideRaw = String(rec.side ?? "").trim();
   const sideLetter = sideRaw.startsWith("A")
     ? "A"
@@ -71,13 +50,7 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
 
   const textToCopy = `${headline} — ${rationale}${
     sunriseLocal || sunsetLocal
-      ? ` ${
-          sunriseLocal
-            ? `Sunrise ~${sunriseLocal} at ${origin?.iata ?? ""}.`
-            : ""
-        }${
-          sunsetLocal ? ` Sunset ~${sunsetLocal} at ${dest?.iata ?? ""}.` : ""
-        }`
+      ? ` ${sunriseLocal ? `Sunrise ~${sunriseLocal} at ${origin?.iata ?? ""} (${origin?.tz ?? ""}).` : ""}${sunsetLocal ? ` Sunset ~${sunsetLocal} at ${dest?.iata ?? ""} (${dest?.tz ?? ""}).` : ""}`
       : ""
   }`;
 
@@ -99,14 +72,12 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
         </span>
       </div>
 
-      {/* Headline */}
       <h2 className="text-2xl font-extrabold tracking-tight">{headline}</h2>
       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
         Peak sun altitude ~{rec.peakAltitudeDeg}° above horizon. Confidence{" "}
         {Math.round(rec.confidence * 100)}%.
       </p>
 
-      {/* Info pills */}
       <div className="mt-3 flex flex-wrap gap-2">
         <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
           {preference === "avoid" ? "Avoid glare" : "See the sun"}
@@ -116,27 +87,22 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
         </span>
         {sunriseLocal && (
           <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
-            Sunrise ~{sunriseLocal} at {origin?.iata}
+            Sunrise ~{sunriseLocal} at {origin?.iata} ({origin?.tz})
           </span>
         )}
         {sunsetLocal && (
           <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
-            Sunset ~{sunsetLocal} at {dest?.iata}
+            Sunset ~{sunsetLocal} at {dest?.iata} ({dest?.tz})
           </span>
         )}
       </div>
 
-      {/* Sparkline */}
       {rec.samples && rec.samples.length > 1 && (
         <div className="text-zinc-700 dark:text-zinc-200">
           <SunSparkline samples={rec.samples} />
         </div>
       )}
 
-      {/* Pass-by timeline under sparkline (times shown in origin local if available) */}
-      {passBys.length > 0 && <Timeline items={passBys} zone={origin?.tz} />}
-
-      {/* Actions */}
       <div className="mt-3 flex items-center gap-3 flex-wrap">
         <button
           onClick={copy}

@@ -1,3 +1,4 @@
+
 "use client";
 
 import dynamic from "next/dynamic";
@@ -5,11 +6,14 @@ import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import Inputs, { InputsSnapshot } from "@/components/Inputs";
+import ResultCard from "@/components/ResultCard";
 import ThemeToggle from "@/components/ThemeToggle";
 import CompareCard from "@/components/CompareCard";
 
 import { computeRecommendation } from "@/lib/logic";
-import type { Airport, Recommendation } from "@/lib/types";
+import { detectCityPassBysFromSamples, type PassBy } from "@/lib/cities";
+import type { Airport, Recommendation, Preference } from "@/lib/types";
+import cities from "@/lib/cities.json";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
@@ -17,7 +21,7 @@ export default function Home() {
   const router = useRouter();
   const search = useSearchParams();
 
-  // Build defaults from the URL (?from=...&to=...&depart=...)
+  // Build defaults from the URL (?from=...&to=...&depart=...); otherwise empty
   const defaults = useMemo(() => {
     const from = (search.get("from") || "").toUpperCase();
     const to = (search.get("to") || "").toUpperCase();
@@ -30,12 +34,23 @@ export default function Home() {
   const [rec, setRec] = useState<Recommendation | null>(null);
   const [origin, setOrigin] = useState<Airport | undefined>(undefined);
   const [dest, setDest] = useState<Airport | undefined>(undefined);
+  const [pref, setPref] = useState<Preference>("see");
 
-  // Shared city threshold + scrubber (0..1)
+  // Comparison controls
   const [thresholdKm, setThresholdKm] = useState<number>(75);
   const [progress, setProgress] = useState<number>(0);
 
-  // Keep URL in sync for easy share
+  const cityPassBys: PassBy[] = useMemo(() => {
+    if (!rec?.samples?.length) return [];
+    try {
+      return detectCityPassBysFromSamples(rec.samples as any, cities as any, {
+        thresholdKm,
+      });
+    } catch {
+      return [];
+    }
+  }, [rec?.samples, thresholdKm]);
+
   function updateUrl(s: InputsSnapshot) {
     const params = new URLSearchParams();
     params.set("from", s.from);
@@ -46,7 +61,7 @@ export default function Home() {
 
   async function handleSubmit(s: InputsSnapshot) {
     setLoading(true);
-
+    setPref(s.preference);
     await new Promise((r) => setTimeout(r, 120));
 
     const r = computeRecommendation({
@@ -62,16 +77,15 @@ export default function Home() {
     setDest(s.dest);
     updateUrl(s);
     setLoading(false);
-    setProgress(0); // reset scrubber on new compute
   }
 
-  function handleClearAll() {
+  function clearAll() {
     setRec(null);
     setOrigin(undefined);
     setDest(undefined);
     setProgress(0);
-    // clear URL (remove query)
-    router.replace(`/`);
+    setThresholdKm(75);
+    router.replace("/");
   }
 
   return (
@@ -90,12 +104,7 @@ export default function Home() {
           <ThemeToggle />
         </header>
 
-        <Inputs
-          defaults={defaults}
-          loading={loading}
-          onSubmit={handleSubmit}
-          onClear={handleClearAll}
-        />
+        <Inputs defaults={defaults} loading={loading} onSubmit={handleSubmit} onClearAll={clearAll} />
 
         {rec && (
           <CompareCard
@@ -103,17 +112,16 @@ export default function Home() {
             origin={origin}
             dest={dest}
             thresholdKm={thresholdKm}
-            onThresholdChange={setThresholdKm}
+            onThresholdChange={(v) => setThresholdKm(v)}
             progress={progress}
-            onProgressChange={setProgress}
+            onProgressChange={(p) => setProgress(p)}
+            passBys={cityPassBys}
           />
         )}
 
-        <MapView
-          samples={rec?.samples ?? null}
-          thresholdKm={thresholdKm}
-          progress={progress}
-        />
+        <ResultCard rec={rec} origin={origin} dest={dest} preference={pref} />
+
+        <MapView samples={rec?.samples ?? null} cities={cityPassBys} thresholdKm={thresholdKm} originTZ={origin?.tz} />
 
         <footer className="text-xs text-zinc-500 dark:text-zinc-400 pt-2">
           Assumes great-circle routing and fair weather. Window seats: A (left),

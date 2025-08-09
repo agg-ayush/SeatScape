@@ -1,118 +1,130 @@
 "use client";
 
-import { Combobox } from "@headlessui/react";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
+import { Combobox, Transition } from "@headlessui/react";
+import { XMarkIcon, MagnifyingGlassIcon, ChevronUpDownIcon } from "@heroicons/react/24/outline";
 
-export type ZoneOption = { tz: string; label: string; abbr: string[] };
+type TZItem = { tz: string; label: string; acronyms: string[] };
 
-const ACRONYMS: Record<string, string[]> = {
-  UTC: ["UTC", "GMT", "Z"],
-  "Europe/London": ["GMT", "BST"],
-  "Europe/Paris": ["CET", "CEST"],
-  "Europe/Berlin": ["CET", "CEST"],
-  "Europe/Madrid": ["CET", "CEST"],
-  "Europe/Rome": ["CET", "CEST"],
-  "America/New_York": ["EST", "EDT"],
-  "America/Chicago": ["CST", "CDT"],
-  "America/Denver": ["MST", "MDT"],
-  "America/Los_Angeles": ["PST", "PDT"],
-  "America/Phoenix": ["MST"],
-  "America/Toronto": ["EST", "EDT"],
-  "America/Sao_Paulo": ["BRT"],
-  "Asia/Dubai": ["GST"],
-  "Asia/Kolkata": ["IST"],
-  "Asia/Jerusalem": ["IST", "IDT"],
-  "Asia/Tokyo": ["JST"],
-  "Asia/Singapore": ["SGT"],
-  "Australia/Sydney": ["AEST", "AEDT"],
-  "Australia/Perth": ["AWST"],
-};
-
-function matches(q: string, o: ZoneOption) {
-  const t = q.toLowerCase();
-  if (o.label.toLowerCase().includes(t)) return true;
-  if (o.tz.toLowerCase().includes(t)) return true;
-  return o.abbr.some((a) => a.toLowerCase().includes(t));
-}
+const COMMON: TZItem[] = [
+  { tz: "UTC", label: "UTC — Coordinated Universal Time", acronyms: ["UTC","Z"] },
+  { tz: "Europe/London", label: "UK — Europe/London", acronyms: ["GMT","BST","UK"] },
+  { tz: "Europe/Paris", label: "France — Europe/Paris", acronyms: ["CET","CEST"] },
+  { tz: "Europe/Berlin", label: "Germany — Europe/Berlin", acronyms: ["CET","CEST","DE"] },
+  { tz: "Asia/Kolkata", label: "India — Asia/Kolkata", acronyms: ["IST"] },
+  { tz: "Asia/Dubai", label: "UAE — Asia/Dubai", acronyms: ["GST"] },
+  { tz: "Asia/Singapore", label: "Singapore — Asia/Singapore", acronyms: ["SGT"] },
+  { tz: "Asia/Tokyo", label: "Japan — Asia/Tokyo", acronyms: ["JST"] },
+  { tz: "Australia/Sydney", label: "Australia — Australia/Sydney", acronyms: ["AEST","AEDT"] },
+  { tz: "America/Los_Angeles", label: "US Pacific — America/Los_Angeles", acronyms: ["PT","PST","PDT"] },
+  { tz: "America/Denver", label: "US Mountain — America/Denver", acronyms: ["MT","MST","MDT"] },
+  { tz: "America/Chicago", label: "US Central — America/Chicago", acronyms: ["CT","CST","CDT"] },
+  { tz: "America/New_York", label: "US Eastern — America/New_York", acronyms: ["ET","EST","EDT"] },
+];
 
 export default function TimezoneSelect({
-  options,
   value,
   onChange,
-  onClearToEmptyCustom,
+  onClearToCustom,
+  placeholder = "Search timezone (e.g., IST, PST, UTC)",
+  fullWidth = true,
 }: {
-  options: ZoneOption[];
-  value: string; // may be ""
+  value?: string | null;
   onChange: (tz: string) => void;
-  onClearToEmptyCustom: () => void; // switch to custom mode with empty value
+  onClearToCustom: () => void;
+  placeholder?: string;
+  fullWidth?: boolean;
 }) {
   const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const withAbbr = useMemo(
-    () =>
-      options.map((o) => ({
-        ...o,
-        abbr: o.abbr.length ? o.abbr : ACRONYMS[o.tz] || [],
-      })),
-    [options]
-  );
+  const items = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return COMMON;
+    return COMMON.filter((it) =>
+      it.tz.toLowerCase().includes(q) ||
+      it.label.toLowerCase().includes(q) ||
+      it.acronyms.some((a) => a.toLowerCase().includes(q))
+    );
+  }, [query]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim();
-    if (!q) return withAbbr;
-    return withAbbr.filter((o) => matches(q, o));
-  }, [withAbbr, query]);
+  const handleSelect = (tz: string) => {
+    onChange(tz);
+    setQuery("");
+    // blur so the list closes
+    inputRef.current?.blur();
+  };
 
-  const active = withAbbr.find((o) => o.tz === value) || null;
+  const handleClear = () => {
+    onClearToCustom();
+    setQuery("");
+    inputRef.current?.focus();
+  };
 
   return (
-    <div className="relative">
-      <Combobox
-        value={active ? active.tz : null}
-        onChange={(v) => onChange(String(v))}
-        nullable
-      >
-        <div className="relative">
-          <Combobox.Input
-            className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 pr-10"
-            displayValue={() => active?.label || ""}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search timezone (e.g., IST, PST, CET)…"
-          />
-          <button
-            type="button"
-            aria-label="Clear timezone"
-            className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full grid place-items-center hover:bg-zinc-100 dark:hover:bg-zinc-800"
-            onClick={onClearToEmptyCustom}
-            tabIndex={-1}
-            title="Clear and switch to Custom"
-          >
-            ×
-          </button>
-        </div>
-        <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-1 shadow-lg">
-          {filtered.map((o) => (
-            <Combobox.Option
-              key={o.tz}
-              value={o.tz}
-              className="cursor-pointer rounded-md px-2 py-1.5 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+    <Combobox value={value ?? ""} onChange={handleSelect}>
+      {({ open }) => (
+        <div className={`relative ${fullWidth ? "w-full" : "w-80"}`}>
+          <div className="relative w-full">
+            <MagnifyingGlassIcon className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-zinc-400" />
+            <Combobox.Input
+              ref={inputRef}
+              className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm px-7 pr-16 py-2"
+              displayValue={() => value ?? ""}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setQuery((q) => q)}      // open on focus
+              onClick={() => setQuery((q) => q)}      // open on click/tap
+              placeholder={placeholder}
+              inputMode="text"
+            />
+            {/* Clear button */}
+            <button
+              type="button"
+              onClick={handleClear}
+              className="absolute right-8 top-2 inline-flex h-6 w-6 items-center justify-center rounded-md border border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              title="Clear timezone"
+              aria-label="Clear timezone"
             >
-              <div className="flex items-center justify-between">
-                <span>{o.label}</span>
-                {o.abbr.length > 0 && (
-                  <span className="text-xs text-zinc-500">
-                    [{o.abbr.join(" / ")}]
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-zinc-500">{o.tz}</div>
-            </Combobox.Option>
-          ))}
-          {filtered.length === 0 && (
-            <div className="px-2 py-1.5 text-sm text-zinc-500">No matches</div>
-          )}
-        </Combobox.Options>
-      </Combobox>
-    </div>
+              <XMarkIcon className="h-4 w-4" />
+            </button>
+            {/* Dropdown chevron */}
+            <Combobox.Button
+              className="absolute right-1.5 top-2 inline-flex h-6 w-6 items-center justify-center rounded-md border border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              aria-label="Toggle timezone list"
+            >
+              <ChevronUpDownIcon className="h-4 w-4" />
+            </Combobox.Button>
+          </div>
+
+          <Transition
+            show={open}
+            enter="transition ease-out duration-100"
+            enterFrom="opacity-0 scale-95"
+            enterTo="opacity-100 scale-100"
+            leave="transition ease-in duration-75"
+            leaveFrom="opacity-100 scale-100"
+            leaveTo="opacity-0 scale-95"
+          >
+            <Combobox.Options className="absolute z-[1000] mt-2 max-h-60 w-full overflow-auto rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg">
+              {items.map((it) => (
+                <Combobox.Option
+                  key={it.tz}
+                  value={it.tz}
+                  className="px-3 py-2 text-sm ui-active:bg-zinc-100 dark:ui-active:bg-zinc-800 cursor-pointer"
+                >
+                  <div className="font-medium">{it.label}</div>
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {it.tz} • {it.acronyms.join(", ")}
+                  </div>
+                </Combobox.Option>
+              ))}
+              {items.length === 0 && (
+                <div className="px-3 py-2 text-sm text-zinc-500">No matches</div>
+              )}
+            </Combobox.Options>
+          </Transition>
+        </div>
+      )}
+    </Combobox>
   );
 }

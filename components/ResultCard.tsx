@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Recommendation, Airport, Preference } from "@/lib/types";
 import { formatLocal } from "@/lib/time";
 import SunSparkline from "@/components/SunSparkline";
+import Timeline from "@/components/Timeline";
+import { detectCityPassBysFromSamples } from "@/lib/cities";
+import cities from "@/lib/cities.json";
 
 type Props = {
   rec: Recommendation | null;
@@ -14,6 +17,24 @@ type Props = {
 
 export default function ResultCard({ rec, origin, dest, preference }: Props) {
   const [copied, setCopied] = useState(false);
+
+  // Compute pass-bys from samples; keep client-only and memoized.
+  // Important: call this hook on every render (even if rec is null) to keep hook order stable.
+  const passBys = useMemo(() => {
+    try {
+      const samples = rec?.samples;
+      if (!samples || samples.length === 0) return [];
+      return detectCityPassBysFromSamples(samples as any, cities as any, {
+        thresholdKm: 75,
+        minSeparationMinutes: 15,
+        stepMinutes: 5,
+      });
+    } catch {
+      return [];
+    }
+  }, [rec?.samples]);
+
+  // Now it is safe to early-return without breaking hook order.
   if (!rec) return null;
 
   const total = rec.leftMinutes + rec.rightMinutes;
@@ -111,6 +132,9 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
           <SunSparkline samples={rec.samples} />
         </div>
       )}
+
+      {/* Pass-by timeline under sparkline (times shown in origin local if available) */}
+      {passBys.length > 0 && <Timeline items={passBys} zone={origin?.tz} />}
 
       {/* Actions */}
       <div className="mt-3 flex items-center gap-3 flex-wrap">

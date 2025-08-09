@@ -5,11 +5,11 @@ import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import Inputs, { InputsSnapshot } from "@/components/Inputs";
-import ResultCard from "@/components/ResultCard";
 import ThemeToggle from "@/components/ThemeToggle";
+import CompareCard from "@/components/CompareCard";
 
 import { computeRecommendation } from "@/lib/logic";
-import type { Airport, Recommendation, Preference } from "@/lib/types";
+import type { Airport, Recommendation } from "@/lib/types";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
@@ -30,7 +30,10 @@ export default function Home() {
   const [rec, setRec] = useState<Recommendation | null>(null);
   const [origin, setOrigin] = useState<Airport | undefined>(undefined);
   const [dest, setDest] = useState<Airport | undefined>(undefined);
-  const [pref, setPref] = useState<Preference>("see");
+
+  // Shared city threshold + scrubber (0..1)
+  const [thresholdKm, setThresholdKm] = useState<number>(75);
+  const [progress, setProgress] = useState<number>(0);
 
   // Keep URL in sync for easy share
   function updateUrl(s: InputsSnapshot) {
@@ -43,16 +46,14 @@ export default function Home() {
 
   async function handleSubmit(s: InputsSnapshot) {
     setLoading(true);
-    setPref(s.preference); // remember current radio selection (“see” | “avoid”)
 
-    // Slight delay so the UI shows the loading state
     await new Promise((r) => setTimeout(r, 120));
 
     const r = computeRecommendation({
       origin: s.origin,
       dest: s.dest,
       departLocalISO: s.departLocalISO,
-      preference: s.preference, // ← pass the real preference
+      preference: s.preference,
       sampleMinutes: 5,
     });
 
@@ -61,6 +62,16 @@ export default function Home() {
     setDest(s.dest);
     updateUrl(s);
     setLoading(false);
+    setProgress(0); // reset scrubber on new compute
+  }
+
+  function handleClearAll() {
+    setRec(null);
+    setOrigin(undefined);
+    setDest(undefined);
+    setProgress(0);
+    // clear URL (remove query)
+    router.replace(`/`);
   }
 
   return (
@@ -79,11 +90,30 @@ export default function Home() {
           <ThemeToggle />
         </header>
 
-        <Inputs defaults={defaults} loading={loading} onSubmit={handleSubmit} />
+        <Inputs
+          defaults={defaults}
+          loading={loading}
+          onSubmit={handleSubmit}
+          onClear={handleClearAll}
+        />
 
-        <ResultCard rec={rec} origin={origin} dest={dest} preference={pref} />
+        {rec && (
+          <CompareCard
+            rec={rec}
+            origin={origin}
+            dest={dest}
+            thresholdKm={thresholdKm}
+            onThresholdChange={setThresholdKm}
+            progress={progress}
+            onProgressChange={setProgress}
+          />
+        )}
 
-        <MapView samples={rec?.samples ?? null} />
+        <MapView
+          samples={rec?.samples ?? null}
+          thresholdKm={thresholdKm}
+          progress={progress}
+        />
 
         <footer className="text-xs text-zinc-500 dark:text-zinc-400 pt-2">
           Assumes great-circle routing and fair weather. Window seats: A (left),

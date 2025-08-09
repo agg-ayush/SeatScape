@@ -6,12 +6,14 @@ import type { Airport, Preference } from "@/lib/types";
 import IataCombo from "@/components/IataCombo";
 import { ArrowsRightLeftIcon } from "@heroicons/react/24/outline";
 import { convertLocalISO } from "@/lib/time";
+import TimezoneSelect, { type ZoneOption } from "@/components/TimezoneSelect";
+import TimeField from "@/components/ui/TimeField";
 
 export type InputsSnapshot = {
   origin: Airport;
   dest: Airport;
   departLocalISO: string; // origin-local "YYYY-MM-DDTHH:mm"
-  preference: Preference;
+  preference: Preference; // fixed to "see"
   from: string;
   to: string;
 };
@@ -19,21 +21,80 @@ export type InputsSnapshot = {
 type Defaults = { from?: string; to?: string; depart?: string };
 type Props = {
   onSubmit: (data: InputsSnapshot) => void;
+  onClear?: () => void;
   defaults?: Defaults;
   loading?: boolean;
 };
-type TZMode = "origin" | "dest" | "utc";
+type TZMode = "source" | "dest" | "custom"; // removed UTC option
 type Recent = { from: string; to: string; depart: string };
 
-export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
+function friendlyName(tz: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: tz,
+      timeZoneName: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).formatToParts(new Date());
+    const piece = parts.find((p) => p.type === "timeZoneName")?.value;
+    if (piece) return piece;
+  } catch {}
+  if (tz === "UTC") return "Coordinated Universal Time";
+  return tz;
+}
+
+export default function Inputs({
+  onSubmit,
+  onClear,
+  defaults,
+  loading = false,
+}: Props) {
   const [from, setFrom] = useState(defaults?.from ?? "");
   const [to, setTo] = useState(defaults?.to ?? "");
-  const [depart, setDepart] = useState(defaults?.depart ?? "");
-  const [tzMode, setTzMode] = useState<TZMode>("origin");
-  const [pref, setPref] = useState<Preference>("see");
+
+  const [dateStr, setDateStr] = useState<string>("");
+  const [timeStr, setTimeStr] = useState<string>("");
+  useEffect(() => {
+    if (defaults?.depart) {
+      const [d, t] = defaults.depart.split("T");
+      if (d) setDateStr(d);
+      if (t) setTimeStr(t.slice(0, 5));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [tzMode, setTzMode] = useState<TZMode>("source");
+  const [customTz, setCustomTz] = useState<string>(""); // empty allowed
   const [error, setError] = useState<string | null>(null);
   const [recent, setRecent] = useState<Recent[]>([]);
   const fromRef = useRef<HTMLInputElement | null>(null);
+
+  const airports = airportsData as unknown as Array<Airport>;
+  const lookup = (code: string): Airport | undefined =>
+    airports.find((a) => a.iata.toUpperCase() === code.toUpperCase());
+
+  const tzOptions: ZoneOption[] = useMemo(() => {
+    const ids = new Set<string>(["UTC"]);
+    try {
+      (airportsData as any[]).forEach((a) => a?.tz && ids.add(String(a.tz)));
+    } catch {}
+    const arr = Array.from(ids);
+    const asOptions = arr.map<ZoneOption>((tz) => ({
+      tz,
+      label: friendlyName(tz),
+      abbr: [],
+    }));
+    const byLabel = new Map<string, ZoneOption>();
+    for (const o of asOptions)
+      if (!byLabel.has(o.label)) byLabel.set(o.label, o);
+    const list = Array.from(byLabel.values());
+    list.sort((a, b) => {
+      if (a.tz === "UTC") return -1;
+      if (b.tz === "UTC") return 1;
+      return a.label.localeCompare(b.label);
+    });
+    return list;
+  }, []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -50,18 +111,18 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const airports = airportsData as unknown as Array<Airport>;
-  const lookup = (code: string): Airport | undefined =>
-    airports.find((a) => a.iata.toUpperCase() === code.toUpperCase());
-
+  // Dev: clear recents on first boot
   useEffect(() => {
-    if (!defaults) {
-      if (!from && lookup("DEL")) setFrom("DEL");
-      if (!to && lookup("DXB")) setTo("DXB");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    try {
+      if (process.env.NODE_ENV === "development") {
+        const boot = localStorage.getItem("ss_dev_boot");
+        if (!boot) {
+          localStorage.removeItem("ss_recent");
+          localStorage.setItem("ss_dev_boot", "1");
+        }
+      }
+    } catch {}
   }, []);
-
   useEffect(() => {
     try {
       const raw = localStorage.getItem("ss_recent");
@@ -81,12 +142,15 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
 
   const originAirport = lookup(from);
   const destAirport = lookup(to);
-  const tzLabel =
-    tzMode === "origin"
-      ? originAirport?.tz ?? "—"
+
+  const currentTz =
+    tzMode === "source"
+      ? originAirport?.tz || ""
       : tzMode === "dest"
-      ? destAirport?.tz ?? "—"
-      : "UTC";
+      ? destAirport?.tz || ""
+      : customTz;
+
+  const tzLabel = currentTz ? friendlyName(currentTz) : "Custom time zone";
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -95,19 +159,24 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
       d = destAirport;
     if (!o) return setError("Enter a valid From IATA (e.g., DEL, JFK).");
     if (!d) return setError("Enter a valid To IATA (e.g., DXB, LHR).");
-    if (!depart) return setError("Choose a departure date & time.");
+    if (!dateStr || !timeStr)
+      return setError("Choose a departure date and time.");
 
+    const depart = `${dateStr}T${timeStr}`;
     let departLocalAtOrigin = depart;
     if (tzMode === "dest")
       departLocalAtOrigin = convertLocalISO(depart, d.tz, o.tz);
-    else if (tzMode === "utc")
-      departLocalAtOrigin = convertLocalISO(depart, "UTC", o.tz);
+    else if (tzMode === "custom") {
+      const z = customTz || "UTC";
+      departLocalAtOrigin = convertLocalISO(depart, z, o.tz);
+    }
+    // tzMode === "source" means depart already in origin local
 
     onSubmit({
       origin: o,
       dest: d,
       departLocalISO: departLocalAtOrigin,
-      preference: pref,
+      preference: "see",
       from,
       to,
     });
@@ -117,31 +186,32 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
   function clearAll() {
     setFrom("");
     setTo("");
-    setDepart("");
+    setDateStr("");
+    setTimeStr("");
     setError(null);
+    setTzMode("source");
+    setCustomTz("");
     fromRef.current?.focus();
+    onClear?.();
   }
   function swap() {
     const old = from;
     setFrom(to);
     setTo(old);
-    setTzMode((m) =>
-      m === "origin" ? "dest" : m === "dest" ? "origin" : "utc"
-    );
+    setTzMode((m) => (m === "source" ? "dest" : m === "dest" ? "source" : m));
   }
 
-  // helper to set a preset quickly
   function applyPreset(a: string, b: string, h = 7, m = 0) {
     setFrom(a);
     setTo(b);
-    setTzMode("origin");
-    setPref("see");
+    setTzMode("source");
     const now = new Date();
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
-    const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 16);
-    setDepart(iso);
+    const dLocal = new Date(
+      d.getTime() - d.getTimezoneOffset() * 60000
+    ).toISOString();
+    setDateStr(dLocal.slice(0, 10));
+    setTimeStr(dLocal.slice(11, 16));
   }
 
   return (
@@ -163,8 +233,8 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
           type="button"
           onClick={swap}
           className="self-end justify-self-center rounded-full p-2 border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-          title="Swap From/To"
-          aria-label="Swap From and To"
+          title="Swap Source/Destination"
+          aria-label="Swap Source and Destination"
         >
           <ArrowsRightLeftIcon className="h-5 w-5" />
         </button>
@@ -177,33 +247,65 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
         />
       </div>
 
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid gap-4 md:grid-cols-3">
+        {/* Date + explicit 24h time with arrow keys and tab progression */}
         <div>
           <label className="block text-sm font-medium mb-1">
             Departure{" "}
             <span className="text-zinc-500 dark:text-zinc-400">
-              ({tzMode === "utc" ? "UTC" : tzLabel})
+              ({tzLabel})
             </span>
           </label>
-          <input
-            type="datetime-local"
-            value={depart}
-            onChange={(e) => setDepart(e.target.value)}
-            className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10"
-          />
+          <div className="flex gap-2 items-center">
+            <input
+              type="date"
+              value={dateStr}
+              onChange={(e) => setDateStr(e.target.value)}
+              className="w-1/2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2"
+            />
+            <TimeField
+              value={timeStr}
+              onChange={setTimeStr}
+              className="w-1/2"
+            />
+          </div>
         </div>
 
+        {/* Always-visible searchable selector */}
         <div>
           <label className="block text-sm font-medium mb-1">Time zone</label>
-          <div className="flex gap-3 flex-wrap">
+          <TimezoneSelect
+            options={tzOptions}
+            value={currentTz}
+            onChange={(tz) => {
+              // If in custom mode and user picks source/dest zone, switch mode.
+              if (tzMode === "custom") {
+                if (originAirport?.tz && tz === originAirport.tz)
+                  setTzMode("source");
+                else if (destAirport?.tz && tz === destAirport.tz)
+                  setTzMode("dest");
+                else setCustomTz(tz);
+              } else {
+                // Selecting from the list in source/dest → switch to custom with that tz
+                setCustomTz(tz);
+                setTzMode("custom");
+              }
+            }}
+            onClearToEmptyCustom={() => {
+              setTzMode("custom");
+              setCustomTz(""); // empty, not UTC
+            }}
+          />
+          {/* Radio options moved BELOW the selector; no UTC */}
+          <div className="flex gap-3 flex-wrap mt-2">
             <label className="inline-flex items-center gap-2 text-sm">
               <input
                 type="radio"
                 name="tz"
-                checked={tzMode === "origin"}
-                onChange={() => setTzMode("origin")}
+                checked={tzMode === "source"}
+                onChange={() => setTzMode("source")}
               />
-              <span>Origin</span>
+              <span>Source</span>
             </label>
             <label className="inline-flex items-center gap-2 text-sm">
               <input
@@ -218,93 +320,77 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
               <input
                 type="radio"
                 name="tz"
-                checked={tzMode === "utc"}
-                onChange={() => setTzMode("utc")}
+                checked={tzMode === "custom"}
+                onChange={() => setTzMode("custom")}
               />
-              <span>UTC</span>
+              <span>Custom</span>
             </label>
           </div>
         </div>
 
+        {/* Presets: add a 4th for symmetry */}
         <div>
-          <label className="block text-sm font-medium mb-1">Preference</label>
-          <div className="flex items-center gap-4">
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="radio"
-                name="pref"
-                checked={pref === "see"}
-                onChange={() => setPref("see")}
-              />
-              <span>See the sun</span>
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="radio"
-                name="pref"
-                checked={pref === "avoid"}
-                onChange={() => setPref("avoid")}
-              />
-              <span>Avoid glare</span>
-            </label>
+          <label className="block text-sm font-medium mb-1">Shortcuts</label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => applyPreset("DEL", "DXB", 18, 30)}
+              className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              DEL→DXB 18:30
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPreset("SFO", "JFK", 7, 0)}
+              className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              SFO→JFK 07:00
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPreset("LHR", "CDG", 16, 0)}
+              className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              LHR→CDG 16:00
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPreset("SIN", "NRT", 9, 15)}
+              className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              SIN→NRT 09:15
+            </button>
           </div>
         </div>
       </div>
 
       {error && <p className="text-red-600">{error}</p>}
 
-      {/* Example presets + recent */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-          Examples:
-        </span>
-        <button
-          type="button"
-          onClick={() => applyPreset("DEL", "DXB", 18, 30)}
-          className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-        >
-          DEL→DXB 18:30
-        </button>
-        <button
-          type="button"
-          onClick={() => applyPreset("SFO", "JFK", 7, 0)}
-          className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-        >
-          SFO→JFK 07:00
-        </button>
-        <button
-          type="button"
-          onClick={() => applyPreset("LHR", "CDG", 16, 0)}
-          className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-        >
-          LHR→CDG 16:00
-        </button>
+      {recent.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            Recent:
+          </span>
+          {recent.map((r, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => {
+                setFrom(r.from);
+                setTo(r.to);
+                const [d, t] = r.depart.split("T");
+                setDateStr(d || "");
+                const tt = (t || "").slice(0, 5);
+                setTimeStr(tt);
+              }}
+              className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              {r.from}→{r.to}
+            </button>
+          ))}
+        </div>
+      )}
 
-        {recent.length > 0 && (
-          <>
-            <span className="mx-2 h-4 w-px bg-zinc-300 dark:bg-zinc-700" />
-            <span className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-              Recent:
-            </span>
-            {recent.map((r, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => {
-                  setFrom(r.from);
-                  setTo(r.to);
-                  setDepart(r.depart);
-                }}
-                className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-              >
-                {r.from}→{r.to}
-              </button>
-            ))}
-          </>
-        )}
-      </div>
-
-      {/* actions */}
       <div className="flex gap-2 flex-wrap items-center">
         <button
           type="submit"

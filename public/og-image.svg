@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#69A8FF"/>
+      <stop offset="1" stop-color="#1F3F8A"/>
+    </linearGradient>
+
+    <filter id="txtShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="3" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.35)"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Title + subtitle block (left) -->
+  <g filter="url(#txtShadow)">
+    <text x="80" y="240" font-family="system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica Neue,Arial,sans-serif"
+          font-weight="700" font-size="100" fill="#fff">SeatScape</text>
+
+    <!-- subtitle split across two safe lines -->
+    <text x="80" y="310" font-family="system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica Neue,Arial,sans-serif"
+          font-weight="400" font-size="48" fill="#fff">
+      <tspan x="80" dy="0">Pick the perfect seat for sun</tspan>
+      <tspan x="80" dy="58">and city views</tspan>
+    </text>
+  </g>
+
+  <!-- Right card: airplane window -->
+  <g transform="translate(940 135)">
+    <!-- frame -->
+    <rect x="0" y="0" width="260" height="360" rx="72" fill="#2455E6"/>
+    <!-- inner glass -->
+    <rect x="18" y="18" width="224" height="324" rx="44" fill="#2E6BFF"/>
+    <!-- sun -->
+    <circle cx="130" cy="160" r="54" fill="#FACC15"/>
+    <!-- horizon -->
+    <rect x="18" y="250" width="224" height="8" fill="rgba(10,23,70,0.6)"/>
+  </g>
+</svg>

@@ -6,7 +6,7 @@ const toDeg = (r: number) => (r * 180) / Math.PI;
 
 /** Normalize angle to (-180, 180] */
 export const wrapTo180 = (x: number) => {
-  let a = (((x + 180) % 360) + 360) % 360; // 0..360
+  const a = (((x + 180) % 360) + 360) % 360; // 0..360
   return a > 180 ? a - 360 : a;
 };
 

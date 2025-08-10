@@ -121,7 +121,7 @@ export default function Home() {
 
         <ResultCard rec={rec} origin={origin} dest={dest} preference={pref} />
 
-        <MapView samples={rec?.samples ?? null} cities={cityPassBys} thresholdKm={thresholdKm} originTZ={origin?.tz} />
+        <MapView samples={rec?.samples ?? null} cities={cityPassBys} thresholdKm={thresholdKm} />
 
         <footer className="text-xs text-zinc-500 dark:text-zinc-400 pt-2">
           Assumes great-circle routing and fair weather. Window seats: A (left),

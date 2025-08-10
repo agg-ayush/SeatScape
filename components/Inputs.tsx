@@ -24,11 +24,12 @@ type Props = {
   onSubmit: (data: InputsSnapshot) => void;
   defaults?: Defaults;
   loading?: boolean;
+  onClearAll?: () => void;
 };
 type TZMode = "origin" | "dest" | "custom";
 type Recent = { from: string; to: string; depart: string };
 
-export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
+export default function Inputs({ onSubmit, defaults, loading = false, onClearAll }: Props) {
   const [from, setFrom] = useState(defaults?.from ?? "");
   const [to, setTo] = useState(defaults?.to ?? "");
   const [depart, setDepart] = useState(defaults?.depart ?? "");
@@ -119,6 +120,7 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
     try { localStorage.removeItem("ss_recent"); } catch {}
     setRecent([]);
     fromRef.current?.focus();
+    onClearAll?.();
   }
   function swap() {
     const old = from;

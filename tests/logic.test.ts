@@ -100,3 +100,18 @@ test("custom arrival overrides duration", () => {
   });
   expect(rec.samples.length).toBe(25);
 });
+
+test("generates at least two samples for very short flights", () => {
+  const rec = computeRecommendation({
+    origin: DEL,
+    dest: DXB,
+    departLocalISO: "2025-08-10T18:30",
+    arriveLocalISO: "2025-08-10T18:31", // 1-minute duration
+    preference: "see",
+    sampleMinutes: 5,
+  });
+  expect(rec.samples.length).toBeGreaterThan(1);
+  const last = rec.samples.at(-1)!;
+  expect(last.lat).toBeCloseTo(DXB.lat, 3);
+  expect(last.lon).toBeCloseTo(DXB.lon, 3);
+});

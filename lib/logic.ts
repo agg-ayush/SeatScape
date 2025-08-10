@@ -69,7 +69,10 @@ export function computeRecommendation(params: {
   let wasEffective = false;
   let currentSide: "A" | "F" | undefined;
 
-  for (let elapsed = 0, idx = 0; elapsed <= totalMinutes; elapsed += sampleMinutes, idx++) {
+  // Always include the final destination sample even for very short flights
+  const sampleCount = Math.ceil(totalMinutes / sampleMinutes) + 1;
+  for (let idx = 0; idx < sampleCount; idx++) {
+    const elapsed = Math.min(totalMinutes, idx * sampleMinutes);
     const frac = elapsed / totalMinutes;
     const pos = intermediatePoint(origin, dest, frac);
     const course = trackAt(origin, dest, frac);

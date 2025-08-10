@@ -2,7 +2,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import Inputs, { InputsSnapshot } from "@/components/Inputs";
@@ -17,7 +17,15 @@ import cities from "@/lib/cities.json";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
-export default function Home() {
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <Home />
+    </Suspense>
+  );
+}
+
+function Home() {
   const router = useRouter();
   const search = useSearchParams();
 

@@ -19,7 +19,7 @@ type Props = {
 export default function ResultCard({ rec, origin, dest, preference, sampleIndex, onSampleIndexChange }: Props) {
   const [copied, setCopied] = useState(false);
   const [localIdx, setLocalIdx] = useState(sampleIndex);
-  const rafRef = useRef<number>();
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     setLocalIdx(sampleIndex);

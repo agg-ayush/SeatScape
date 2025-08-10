@@ -435,5 +435,19 @@
     "lat": -19.9167,
     "lon": -43.9345,
     "tz": "America/Sao_Paulo"
+  },
+  { "name": "Moscow", "lat": 55.7558, "lon": 37.6173, "tz": "Europe/Moscow" },
+  {
+    "name": "Saint Petersburg",
+    "lat": 59.9311,
+    "lon": 30.3609,
+    "tz": "Europe/Moscow"
+  },
+  { "name": "Kyiv", "lat": 50.4501, "lon": 30.5234, "tz": "Europe/Kyiv" },
+  {
+    "name": "Havana",
+    "lat": 23.1136,
+    "lon": -82.3666,
+    "tz": "America/Havana"
   }
 ]

@@ -47,12 +47,6 @@ export default function PlaneSunViz({
   const rel = sunPlaneRelation(s.az, s.course, s.alt);
   const showSun = s.alt > 0;
 
-  const prevSample = samples[prevIdxRef.current];
-  const diffMinutes = Math.abs(
-    new Date(s.utc).getTime() - new Date(prevSample.utc).getTime()
-  ) / 60000;
-  const transitionSec = Math.max(0.1, Math.min(2, (diffMinutes / 5) * 0.3));
-
   const angleRad = (rel.relAz * Math.PI) / 180;
   const radius = width * (45 / 224);
   const sunX = Math.sin(angleRad) * radius;

@@ -333,8 +333,8 @@ export default function SunSparkline({
           time={sunriseTime}
           style={{
             left: `${sunrisePct}%`,
-            top: H,
-            transform: "translate(-50%, -100%)",
+            bottom: 0,
+            transform: "translateX(-50%)",
           }}
         />
       )}
@@ -344,8 +344,8 @@ export default function SunSparkline({
           time={sunsetTime}
           style={{
             left: `${sunsetPct}%`,
-            top: H,
-            transform: "translate(-50%, -100%)",
+            bottom: 0,
+            transform: "translateX(-50%)",
           }}
         />
       )}

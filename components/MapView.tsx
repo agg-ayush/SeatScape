@@ -131,7 +131,6 @@ export default function MapView({ samples, cities = [], thresholdKm = 75, sunris
         <Pane name="plane-marker" style={{ zIndex: 650 }}>
           {planeSample && (
             <Marker
-              key={planeIndex}
               position={[planeSample.lat, planeSample.lon]}
               icon={planeIcon}
               opacity={0.9}

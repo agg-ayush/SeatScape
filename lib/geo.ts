@@ -86,29 +86,66 @@ export function trackAt(a: P, b: P, f: number): number {
   return initialBearing(p1, p2);
 }
 
+// Keep lon in [-180, 180]
+export function normalizeLon(lon: number): number {
+  let x = lon;
+  while (x <= -180) x += 360;
+  while (x > 180) x -= 360;
+  return x;
+}
+
+const WEB_MERCATOR_MAX_LAT = 85.05112878;
+
+export function clampWebMercatorLat(lat: number): number {
+  return Math.max(-WEB_MERCATOR_MAX_LAT, Math.min(WEB_MERCATOR_MAX_LAT, lat));
+}
+
 /**
- * Split a list of points when crossing the ±180° meridian.
- * Inserts a synthetic pole point to avoid polylines wrapping
- * the long way around the map.
+ * Given a dense list of [lon,lat] points (already on the great-circle),
+ * split into segments so no segment crosses the anti-meridian abruptly.
+ * Returns an array of segments; each segment is an array of [lon,lat].
  */
-export function splitAntimeridian(points: P[]): P[][] {
-  if (!points.length) return [];
-  const segments: P[][] = [];
-  let current: P[] = [];
-  for (let i = 0; i < points.length; i++) {
-    const p = points[i];
-    current.push({ lat: p.lat, lon: p.lon });
-    if (i < points.length - 1) {
-      const n = points[i + 1];
-      if (Math.abs(n.lon - p.lon) > 180) {
-        const poleLat = p.lat >= 0 ? 89.999 : -89.999;
-        const pole = { lat: poleLat, lon: 0 };
-        current.push(pole);
-        segments.push(current);
-        current = [pole];
-      }
+export function splitAtAntimeridian(points: [number, number][]): [number, number][][] {
+  if (points.length < 2) return [points];
+
+  const out: [number, number][][] = [];
+  let seg: [number, number][] = [];
+  seg.push([normalizeLon(points[0][0]), clampWebMercatorLat(points[0][1])]);
+
+  for (let i = 1; i < points.length; i++) {
+    const [lon0, lat0] = seg[seg.length - 1];
+    let [lon1, lat1] = points[i];
+    lon1 = normalizeLon(lon1);
+    lat1 = clampWebMercatorLat(lat1);
+
+    let d = lon1 - lon0;
+    // Choose the shorter wrap direction
+    if (d > 180) d -= 360;
+    if (d < -180) d += 360;
+
+    // If still too big, we cross the anti-meridian. Interpolate a cut.
+    if (Math.abs(d) > 180 - 1e-6) {
+      // Theoretically shouldn’t happen after shortest-wrap; keep as safety.
+      d = d > 0 ? 180 : -180;
+    }
+
+    // Simple and effective approach:
+    if (Math.abs(lon1 - lon0) > 180) {
+      // Compute where the segment hits ±180 in normalized space
+      const target = lon0 < 0 ? -180 : 180;
+      const t = (target - lon0) / (lon1 - lon0);
+      const latAtCut = clampWebMercatorLat(lat0 + t * (lat1 - lat0));
+      // Close current segment at the cut
+      seg.push([target, latAtCut]);
+      out.push(seg);
+      // Start a new segment on the other side
+      const wrappedTarget = target === 180 ? -180 : 180;
+      seg = [[wrappedTarget, latAtCut], [lon1, lat1]];
+    } else {
+      seg.push([lon1, lat1]);
     }
   }
-  segments.push(current);
-  return segments;
+
+  if (seg.length) out.push(seg);
+  return out;
 }

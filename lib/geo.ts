@@ -85,3 +85,30 @@ export function trackAt(a: P, b: P, f: number): number {
   const p2 = intermediatePoint(a, b, f2);
   return initialBearing(p1, p2);
 }
+
+/**
+ * Split a list of points when crossing the ±180° meridian.
+ * Inserts a synthetic pole point to avoid polylines wrapping
+ * the long way around the map.
+ */
+export function splitAntimeridian(points: P[]): P[][] {
+  if (!points.length) return [];
+  const segments: P[][] = [];
+  let current: P[] = [];
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    current.push({ lat: p.lat, lon: p.lon });
+    if (i < points.length - 1) {
+      const n = points[i + 1];
+      if (Math.abs(n.lon - p.lon) > 180) {
+        const poleLat = p.lat >= 0 ? 89.999 : -89.999;
+        const pole = { lat: poleLat, lon: 0 };
+        current.push(pole);
+        segments.push(current);
+        current = [pole];
+      }
+    }
+  }
+  segments.push(current);
+  return segments;
+}

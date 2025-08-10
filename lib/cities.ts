@@ -123,7 +123,7 @@ export function detectCityPassBysFromSamples(
         lon: c.lon,
         side,
         sampleIndex: bestIdx,
-        timeUTC: (s as any).utc,
+        timeUTC: s.utc,
         distanceKm: Math.round(bestDist),
         probability: probabilityFromDistance(bestDist, thresholdKm),
       });

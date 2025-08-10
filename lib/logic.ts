@@ -2,6 +2,8 @@ import { Airport, Preference, Recommendation, Sample } from "./types";
 import { gcDistanceKm, intermediatePoint, trackAt, wrapTo180 } from "./geo";
 import { addMinutes, localISOToUTCDate } from "./time";
 import { sunAt, isSunEffective } from "./sun";
+import cities from "./cities.json";
+import type { City } from "./cities";
 
 /**
  * Compute seat recommendation for a flight.
@@ -20,6 +22,19 @@ export function computeRecommendation(params: {
     sampleMinutes = 5,
   } = params;
 
+  function nearestCityName(lat: number, lon: number): string | undefined {
+    let best: string | undefined;
+    let bestDist = Infinity;
+    for (const c of cities as City[]) {
+      const d = gcDistanceKm({ lat, lon }, { lat: c.lat, lon: c.lon });
+      if (d < bestDist) {
+        bestDist = d;
+        best = c.name;
+      }
+    }
+    return best;
+  }
+
   // Convert departure local time to UTC Date
   const depUTC = localISOToUTCDate(params.departLocalISO, params.origin.tz);
 
@@ -34,7 +49,14 @@ export function computeRecommendation(params: {
   let peakAltitudeDeg = -90;
   let sunriseUTC: string | undefined;
   let sunsetUTC: string | undefined;
+  let sunriseSampleIndex: number | undefined;
+  let sunsetSampleIndex: number | undefined;
+  let sunriseSide: "A" | "F" | undefined;
+  let sunsetSide: "A" | "F" | undefined;
+  let sunriseCity: string | undefined;
+  let sunsetCity: string | undefined;
   const samples: Sample[] = [];
+  let prevSample: Sample | undefined;
 
   let wasEffective = false;
 
@@ -56,16 +78,24 @@ export function computeRecommendation(params: {
 
       if (!wasEffective) {
         sunriseUTC = ts.toISOString();
+        sunriseSampleIndex = samples.length;
+        sunriseSide = side === "A" ? "A" : "F";
+        sunriseCity = nearestCityName(pos.lat, pos.lon);
         wasEffective = true;
       }
     } else {
       if (wasEffective) {
         sunsetUTC = ts.toISOString();
+        sunsetSampleIndex = samples.length - 1;
+        sunsetSide = prevSample?.side === "A" ? "A" : prevSample?.side === "F" ? "F" : undefined;
+        if (prevSample) {
+          sunsetCity = nearestCityName(prevSample.lat, prevSample.lon);
+        }
         wasEffective = false;
       }
     }
 
-    samples.push({
+    const sample: Sample = {
       lat: pos.lat,
       lon: pos.lon,
       utc: ts.toISOString(),
@@ -73,7 +103,9 @@ export function computeRecommendation(params: {
       alt: altitudeDeg,
       course,
       side,
-    });
+    };
+    samples.push(sample);
+    prevSample = sample;
   }
 
   // Decide side based on preference
@@ -99,6 +131,12 @@ export function computeRecommendation(params: {
     peakAltitudeDeg: Math.round(peakAltitudeDeg * 10) / 10,
     sunriseUTC,
     sunsetUTC,
+    sunriseSampleIndex,
+    sunsetSampleIndex,
+    sunriseSide,
+    sunsetSide,
+    sunriseCity,
+    sunsetCity,
     confidence: Math.round(confidence * 100) / 100,
     samples,
   };

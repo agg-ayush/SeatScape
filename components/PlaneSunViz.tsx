@@ -38,12 +38,19 @@ export default function PlaneSunViz({
     setLocalIdx(index);
   }, [index]);
 
-  if (!samples || samples.length === 0) return null;
+  const hasSamples = !!samples && samples.length > 0;
+  const safeLen = hasSamples ? samples.length : 1;
+  const idx = clamp(localIdx, 0, safeLen - 1);
 
-  const idx = clamp(localIdx, 0, samples.length - 1);
+  if (!hasSamples) return null;
+
   const s = samples[idx];
   const rel = sunPlaneRelation(s.az, s.course, s.alt);
   const showSun = s.alt > 0;
+
+  // Small, fixed-duration transition keeps the sun responsive to the
+  // slider while avoiding jarring jumps.
+  const transitionSec = 0.15;
 
   const angleRad = (rel.relAz * Math.PI) / 180;
   const radius = width * (45 / 224);
@@ -95,6 +102,7 @@ export default function PlaneSunViz({
               height: sunSize,
               left: `calc(50% + ${sunX}px - ${sunSize / 2}px)`,
               top: `calc(50% + ${sunY}px - ${sunSize / 2}px)`,
+              transition: `left ${transitionSec}s linear, top ${transitionSec}s linear`,
             }}
           />
         )}

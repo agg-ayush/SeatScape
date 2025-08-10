@@ -129,7 +129,14 @@ export default function SunSparkline({
     return ticks;
   }, [samples, tz]);
 
-  if (!model) return null;
+  if (!model)
+    return (
+      <div
+        ref={containerRef}
+        style={{ height }}
+        className="relative mt-3 overflow-hidden rounded-lg"
+      />
+    );
 
   const {
     width: W,
@@ -326,8 +333,8 @@ export default function SunSparkline({
           time={sunriseTime}
           style={{
             left: `${sunrisePct}%`,
-            top: H,
-            transform: "translate(-50%, -100%)",
+            bottom: 0,
+            transform: "translateX(-50%)",
           }}
         />
       )}
@@ -337,8 +344,8 @@ export default function SunSparkline({
           time={sunsetTime}
           style={{
             left: `${sunsetPct}%`,
-            top: H,
-            transform: "translate(-50%, -100%)",
+            bottom: 0,
+            transform: "translateX(-50%)",
           }}
         />
       )}

@@ -61,8 +61,18 @@ export default function MapView({ samples, cities = [], thresholdKm = 75, sunris
   const flatPoints = segments.flat().map(([lon, lat]) => ({ lat, lon }));
   const sunriseSample = sunriseIndex !== undefined ? samples[sunriseIndex] : null;
   const sunsetSample = sunsetIndex !== undefined ? samples[sunsetIndex] : null;
-  const sunriseIcon = L.divIcon({ className: "", html: "🌅", iconSize: [20, 20], iconAnchor: [10, 10] });
-  const sunsetIcon = L.divIcon({ className: "", html: "🌇", iconSize: [20, 20], iconAnchor: [10, 10] });
+  const sunriseIcon = L.divIcon({
+    className: "",
+    html: "<span style='font-size:24px'>🌅</span>",
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+  const sunsetIcon = L.divIcon({
+    className: "",
+    html: "<span style='font-size:24px'>🌇</span>",
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
   const planeSample = planeIndex !== undefined ? samples[Math.min(planeIndex, samples.length - 1)] : null;
   const planeIcon = L.divIcon({
     className: "opacity-90",
@@ -129,7 +139,13 @@ export default function MapView({ samples, cities = [], thresholdKm = 75, sunris
 
         {/* plane marker */}
         <Pane name="plane-marker" style={{ zIndex: 650 }}>
-          {planeSample && <Marker position={[planeSample.lat, planeSample.lon]} icon={planeIcon} opacity={0.9} />}
+          {planeSample && (
+            <Marker
+              position={[planeSample.lat, planeSample.lon]}
+              icon={planeIcon}
+              opacity={0.9}
+            />
+          )}
         </Pane>
 
         {/* sun markers (top) */}

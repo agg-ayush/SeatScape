@@ -5,13 +5,7 @@ import airportsData from "@/lib/airports.json";
 import type { Airport, Preference } from "@/lib/types";
 import IataCombo from "@/components/IataCombo";
 import { ArrowsRightLeftIcon } from "@heroicons/react/24/outline";
-import {
-  addMinutes,
-  convertLocalISO,
-  formatLocal,
-  localISOToUTCDate,
-} from "@/lib/time";
-import { estimateDurationMinutes } from "@/lib/logic";
+import { convertLocalISO } from "@/lib/time";
 import TimezoneSelect from "@/components/TimezoneSelect";
 import PreferenceToggle from "@/components/PreferenceToggle";
 import DateTime24 from "@/components/DateTime24";
@@ -41,7 +35,6 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
   const [to, setTo] = useState(defaults?.to ?? "");
   const [depart, setDepart] = useState(defaults?.depart ?? "");
   const [arrive, setArrive] = useState(defaults?.arrive ?? "");
-  const [arriveEdited, setArriveEdited] = useState(!!defaults?.arrive);
   const [tzMode, setTzMode] = useState<TZMode>("origin");
   const [customTZ, setCustomTZ] = useState<string | null>(null);
   const [pref, setPref] = useState<Preference>("see");
@@ -95,31 +88,6 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
       ? destAirport?.tz ?? "—"
       : customTZ || "—";
 
-  // Auto-compute arrival whenever inputs change
-  useEffect(() => {
-    if (arriveEdited) return;
-    if (!depart || !originAirport || !destAirport) {
-      setArrive("");
-      return;
-    }
-    const departTZ =
-      tzMode === "origin"
-        ? originAirport.tz
-        : tzMode === "dest"
-        ? destAirport.tz
-        : customTZ || originAirport.tz;
-    const depUTC = localISOToUTCDate(depart, departTZ);
-    const arrUTC = addMinutes(
-      depUTC,
-      estimateDurationMinutes(originAirport, destAirport)
-    );
-    const arrLocal = formatLocal(
-      arrUTC,
-      destAirport.tz,
-      "yyyy-LL-dd'T'HH:mm"
-    );
-    setArrive(arrLocal);
-  }, [depart, originAirport, destAirport, tzMode, customTZ, arriveEdited]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -154,7 +122,6 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
     setTo("");
     setDepart("");
     setArrive("");
-    setArriveEdited(false);
     setError(null);
     try { localStorage.removeItem("ss_recent"); } catch {}
     setRecent([]);
@@ -166,7 +133,6 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
     setFrom(to);
     setTo(old);
     setTzMode((m) => (m === "origin" ? "dest" : m === "dest" ? "origin" : "custom"));
-    setArriveEdited(false);
   }
 
   function applyPreset(a: string, b: string, h = 7, m = 0) {
@@ -181,7 +147,6 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
       .slice(0, 16);
     setDepart(iso);
     setArrive("");
-    setArriveEdited(false);
   }
 
   const chipKey = (onActivate: () => void) => (e: React.KeyboardEvent) => {
@@ -204,7 +169,7 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
             value={from}
             onChange={(v) => {
               setFrom(v ? v.toUpperCase() : "");
-              setArriveEdited(false);
+              
             }}
             airports={airports}
             inputRef={fromRef}
@@ -224,7 +189,7 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
             value={to}
             onChange={(v) => {
               setTo(v ? v.toUpperCase() : "");
-              setArriveEdited(false);
+              
             }}
             airports={airports}
           />
@@ -243,7 +208,7 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
               value={depart}
               onChange={(v) => {
                 setDepart(v);
-                setArriveEdited(false);
+                
               }}
             />
           </div>
@@ -259,7 +224,7 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
               value={arrive}
               onChange={(v) => {
                 setArrive(v);
-                setArriveEdited(true);
+                
               }}
             />
           </div>

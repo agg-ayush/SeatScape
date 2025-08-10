@@ -3,10 +3,27 @@
 import type { Sample } from "@/lib/types";
 import { useMemo } from "react";
 import { formatLocal } from "@/lib/time";
+import SunEventMarker from "@/components/SunEventMarker";
 
-type Props = { samples: Sample[]; height?: number; tz?: string };
+type Props = {
+  samples: Sample[];
+  height?: number;
+  tz?: string;
+  sunriseIndex?: number;
+  sunsetIndex?: number;
+  sunriseTz?: string;
+  sunsetTz?: string;
+};
 
-export default function SunSparkline({ samples, height = 80, tz }: Props) {
+export default function SunSparkline({
+  samples,
+  height = 80,
+  tz,
+  sunriseIndex,
+  sunsetIndex,
+  sunriseTz,
+  sunsetTz,
+}: Props) {
   // Reserve space on top for the legend so the path never overlaps it
   const LEGEND_SPACE = 34;
   const width = 560;
@@ -97,18 +114,33 @@ export default function SunSparkline({ samples, height = 80, tz }: Props) {
     lastIdx,
     fullPath,
     sunPath,
+    xScale,
   } = model;
 
+  const sunriseX =
+    sunriseIndex !== undefined ? xScale(sunriseIndex) : null;
+  const sunrisePct = sunriseX !== null ? (sunriseX / W) * 100 : null;
+  const sunriseTime =
+    sunriseIndex !== undefined && sunriseTz
+      ? formatLocal(new Date(samples[sunriseIndex].utc), sunriseTz, "HH:mm")
+      : null;
+  const sunsetX =
+    sunsetIndex !== undefined ? xScale(sunsetIndex) : null;
+  const sunsetPct = sunsetX !== null ? (sunsetX / W) * 100 : null;
+  const sunsetTime =
+    sunsetIndex !== undefined && sunsetTz
+      ? formatLocal(new Date(samples[sunsetIndex].utc), sunsetTz, "HH:mm")
+      : null;
+
   return (
-    <>
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      width="100%"
-      height={H}
-      role="img"
-      aria-label="Sun altitude over flight time"
-      className="mt-3"
-    >
+    <div className="relative mt-3">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        width="100%"
+        height={H}
+        role="img"
+        aria-label="Sun altitude over flight time"
+      >
       <defs>
         <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#fbbf24" stopOpacity="0.95" />
@@ -242,12 +274,34 @@ export default function SunSparkline({ samples, height = 80, tz }: Props) {
           last sun
         </text>
       </g>
-    </svg>
-    <div className="mt-1 flex justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
-      {tickTimes.map((t, i) => (
-        <span key={i}>{t}</span>
-      ))}
+      </svg>
+      {sunrisePct !== null && sunriseTime && (
+        <SunEventMarker
+          type="sunrise"
+          time={sunriseTime}
+          style={{
+            left: `${sunrisePct}%`,
+            top: H,
+            transform: "translate(-50%, -100%)",
+          }}
+        />
+      )}
+      {sunsetPct !== null && sunsetTime && (
+        <SunEventMarker
+          type="sunset"
+          time={sunsetTime}
+          style={{
+            left: `${sunsetPct}%`,
+            top: H,
+            transform: "translate(-50%, -100%)",
+          }}
+        />
+      )}
+      <div className="mt-1 flex justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
+        {tickTimes.map((t, i) => (
+          <span key={i}>{t}</span>
+        ))}
+      </div>
     </div>
-    </>
   );
 }

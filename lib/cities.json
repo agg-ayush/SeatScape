@@ -449,5 +449,8 @@
     "lat": 23.1136,
     "lon": -82.3666,
     "tz": "America/Havana"
-  }
+  },
+  { "name": "Anchorage", "lat": 61.2181, "lon": -149.9003, "tz": "America/Anchorage" },
+  { "name": "Honolulu", "lat": 21.3069, "lon": -157.8583, "tz": "Pacific/Honolulu" },
+  { "name": "Reykjavik", "lat": 64.1466, "lon": -21.9426, "tz": "Atlantic/Reykjavik" }
 ]

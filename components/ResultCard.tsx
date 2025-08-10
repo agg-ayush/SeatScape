@@ -119,19 +119,22 @@ export default function ResultCard({ rec, origin, dest, preference, sampleIndex,
 
       {rec.samples && rec.samples.length > 1 && (
         <div className="text-zinc-700 dark:text-zinc-200">
-          <SunSparkline samples={rec.samples} tz={origin?.tz} />
+          <SunSparkline
+            samples={rec.samples}
+            tz={origin?.tz}
+            sunriseIndex={rec.sunriseSampleIndex}
+            sunsetIndex={rec.sunsetSampleIndex}
+            sunriseTz={rec.sunriseTz || origin?.tz}
+            sunsetTz={rec.sunsetTz || dest?.tz}
+          />
         </div>
       )}
 
       {rec.samples && rec.samples.length > 0 && (
         <PlaneSunViz
           samples={rec.samples}
-          sunriseIndex={rec.sunriseSampleIndex}
-          sunsetIndex={rec.sunsetSampleIndex}
           index={sampleIndex}
           onIndexChange={onSampleIndexChange}
-          sunriseTz={rec.sunriseTz || origin?.tz}
-          sunsetTz={rec.sunsetTz || dest?.tz}
         />
       )}
 

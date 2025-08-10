@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import airportsData from "@/lib/airports.json";
 import type { Airport, Preference } from "@/lib/types";
 import IataCombo from "@/components/IataCombo";
@@ -81,12 +81,32 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
   const originAirport = lookup(from);
   const destAirport = lookup(to);
 
-  const tzLabel =
-    tzMode === "origin"
-      ? originAirport?.tz ?? "—"
-      : tzMode === "dest"
-      ? destAirport?.tz ?? "—"
-      : customTZ || "—";
+  const zoneForMode = useCallback(
+    (m: TZMode) =>
+      m === "origin"
+        ? originAirport?.tz
+        : m === "dest"
+        ? destAirport?.tz
+        : customTZ || undefined,
+    [originAirport?.tz, destAirport?.tz, customTZ]
+  );
+
+  const tzLabel = zoneForMode(tzMode) ?? "—";
+
+  const departZoneRef = useRef<string | undefined>(zoneForMode(tzMode));
+  const arriveZoneRef = useRef<string | undefined>(destAirport?.tz);
+
+  useEffect(() => {
+    const nextZone = zoneForMode(tzMode);
+    if (depart && departZoneRef.current && nextZone && departZoneRef.current !== nextZone) {
+      setDepart(convertLocalISO(depart, departZoneRef.current, nextZone));
+    }
+    departZoneRef.current = nextZone;
+    if (arrive && arriveZoneRef.current && nextZone && arriveZoneRef.current !== nextZone) {
+      setArrive(convertLocalISO(arrive, arriveZoneRef.current, nextZone));
+    }
+    arriveZoneRef.current = nextZone;
+  }, [tzMode, customTZ, originAirport?.tz, destAirport?.tz, depart, arrive, zoneForMode]);
 
 
   function handleSubmit(e: React.FormEvent) {
@@ -100,16 +120,21 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
     if (!arrive) return setError("Arrival time unavailable.");
 
     let departLocalAtOrigin = depart;
-    if (tzMode === "dest")
+    let arriveLocalAtDest = arrive;
+    if (tzMode === "dest") {
       departLocalAtOrigin = convertLocalISO(depart, d.tz, o.tz);
-    else if (tzMode === "custom" && customTZ)
+    } else if (tzMode === "custom" && customTZ) {
       departLocalAtOrigin = convertLocalISO(depart, customTZ, o.tz);
+      arriveLocalAtDest = convertLocalISO(arrive, customTZ, d.tz);
+    } else if (tzMode === "origin") {
+      arriveLocalAtDest = convertLocalISO(arrive, o.tz, d.tz);
+    }
 
     onSubmit({
       origin: o,
       dest: d,
       departLocalISO: departLocalAtOrigin,
-      arriveLocalISO: arrive,
+      arriveLocalISO: arriveLocalAtDest,
       preference: pref,
       from,
       to,
@@ -122,6 +147,8 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
     setTo("");
     setDepart("");
     setArrive("");
+    departZoneRef.current = zoneForMode(tzMode);
+    arriveZoneRef.current = zoneForMode(tzMode);
     setError(null);
     try { localStorage.removeItem("ss_recent"); } catch {}
     setRecent([]);
@@ -208,7 +235,7 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
               value={depart}
               onChange={(v) => {
                 setDepart(v);
-                
+                departZoneRef.current = zoneForMode(tzMode);
               }}
             />
           </div>
@@ -217,14 +244,14 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
             <label className="block text-sm font-medium mb-1">
               Arrival{" "}
               <span className="text-zinc-500 dark:text-zinc-400">
-                ({destAirport?.tz ?? "—"})
+                ({tzLabel})
               </span>
             </label>
             <DateTime24
               value={arrive}
               onChange={(v) => {
                 setArrive(v);
-                
+                arriveZoneRef.current = zoneForMode(tzMode);
               }}
             />
           </div>
@@ -346,12 +373,18 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
                   setTo(r.to);
                   setDepart(r.depart);
                   setArrive(r.arrive ?? "");
+                  const z = zoneForMode(tzMode);
+                  departZoneRef.current = z;
+                  arriveZoneRef.current = z;
                 }}
                 onKeyDown={chipKey(() => {
                   setFrom(r.from);
                   setTo(r.to);
                   setDepart(r.depart);
                   setArrive(r.arrive ?? "");
+                  const z = zoneForMode(tzMode);
+                  departZoneRef.current = z;
+                  arriveZoneRef.current = z;
                 })}
                 className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
                 role="button"

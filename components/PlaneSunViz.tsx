@@ -3,29 +3,15 @@
 import { useRef, useEffect, useState, type CSSProperties } from "react";
 import type { Sample } from "@/lib/types";
 import { sunPlaneRelation } from "@/lib/plane";
-import { formatLocal } from "@/lib/time";
-import SunEventMarker from "@/components/SunEventMarker";
 import sliderStyles from "./ui/slider.module.css";
 
 interface Props {
   samples: Sample[] | null;
-  sunriseIndex?: number;
-  sunsetIndex?: number;
   index: number;
   onIndexChange: (i: number) => void;
-  sunriseTz?: string;
-  sunsetTz?: string;
 }
 
-export default function PlaneSunViz({
-  samples,
-  sunriseIndex,
-  sunsetIndex,
-  index,
-  onIndexChange,
-  sunriseTz,
-  sunsetTz,
-}: Props) {
+export default function PlaneSunViz({ samples, index, onIndexChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
 
@@ -58,22 +44,6 @@ export default function PlaneSunViz({
   const leftOpacity = rel.side === "A" ? rel.intensity : 0;
   const rightOpacity = rel.side === "F" ? rel.intensity : 0;
 
-  const sunrisePct =
-    sunriseIndex !== undefined && samples.length > 1
-      ? (sunriseIndex / (samples.length - 1)) * 100
-      : null;
-  const sunsetPct =
-    sunsetIndex !== undefined && samples.length > 1
-      ? (sunsetIndex / (samples.length - 1)) * 100
-      : null;
-  const sunriseTime =
-    sunriseIndex !== undefined && sunriseTz
-      ? formatLocal(new Date(samples[sunriseIndex].utc), sunriseTz, "HH:mm")
-      : null;
-  const sunsetTime =
-    sunsetIndex !== undefined && sunsetTz
-      ? formatLocal(new Date(samples[sunsetIndex].utc), sunsetTz, "HH:mm")
-      : null;
 
   return (
     <div className="mt-4 mx-auto w-full max-w-sm">
@@ -116,20 +86,6 @@ export default function PlaneSunViz({
       </div>
       {samples.length > 1 && (
         <div className="relative mt-2">
-          {sunrisePct !== null && sunriseTime && (
-            <SunEventMarker
-              type="sunrise"
-              time={sunriseTime}
-              style={{ left: `${sunrisePct}%`, top: -20, transform: "translate(-50%, -100%)" }}
-            />
-          )}
-          {sunsetPct !== null && sunsetTime && (
-            <SunEventMarker
-              type="sunset"
-              time={sunsetTime}
-              style={{ left: `${sunsetPct}%`, top: -20, transform: "translate(-50%, -100%)" }}
-            />
-          )}
           <input
             type="range"
             min={0}

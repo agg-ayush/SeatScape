@@ -5,7 +5,12 @@ import airportsData from "@/lib/airports.json";
 import type { Airport, Preference } from "@/lib/types";
 import IataCombo from "@/components/IataCombo";
 import { ArrowsRightLeftIcon } from "@heroicons/react/24/outline";
-import { addMinutes, convertLocalISO, formatLocal, localISOToUTCDate } from "@/lib/time";
+import {
+  addMinutes,
+  convertLocalISO,
+  formatLocal,
+  localISOToUTCDate,
+} from "@/lib/time";
 import { estimateDurationMinutes } from "@/lib/logic";
 import TimezoneSelect from "@/components/TimezoneSelect";
 import PreferenceToggle from "@/components/PreferenceToggle";
@@ -15,10 +20,10 @@ export type InputsSnapshot = {
   origin: Airport;
   dest: Airport;
   departLocalISO: string; // origin-local "YYYY-MM-DDTHH:mm"
+  arriveLocalISO: string; // destination-local "YYYY-MM-DDTHH:mm"
   preference: Preference;
   from: string;
   to: string;
-  arriveLocalISO?: string;
 };
 
 type Defaults = { from?: string; to?: string; depart?: string; arrive?: string };
@@ -89,6 +94,31 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
       ? destAirport?.tz ?? "—"
       : customTZ || "—";
 
+  // Auto-compute arrival whenever inputs change
+  useEffect(() => {
+    if (!depart || !originAirport || !destAirport) {
+      setArrive("");
+      return;
+    }
+    const departTZ =
+      tzMode === "origin"
+        ? originAirport.tz
+        : tzMode === "dest"
+        ? destAirport.tz
+        : customTZ || originAirport.tz;
+    const depUTC = localISOToUTCDate(depart, departTZ);
+    const arrUTC = addMinutes(
+      depUTC,
+      estimateDurationMinutes(originAirport, destAirport)
+    );
+    const arrLocal = formatLocal(
+      arrUTC,
+      destAirport.tz,
+      "yyyy-LL-dd'T'HH:mm"
+    );
+    setArrive(arrLocal);
+  }, [depart, originAirport, destAirport, tzMode, customTZ]);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -96,36 +126,23 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
       d = destAirport;
     if (!o) return setError("Enter a valid From IATA (e.g., DEL, JFK).");
     if (!d) return setError("Enter a valid To IATA (e.g., DXB, LHR).");
-    if (!depart && !arrive)
-      return setError("Choose a departure or arrival date & time.");
+    if (!depart) return setError("Choose a departure date & time.");
+    if (!arrive) return setError("Arrival time unavailable.");
 
     let departLocalAtOrigin = depart;
-    if (arrive) {
-      const arrUTC = localISOToUTCDate(arrive, d.tz);
-      const depUTC = addMinutes(
-        arrUTC,
-        -estimateDurationMinutes(o, d)
-      );
-      departLocalAtOrigin = formatLocal(
-        depUTC,
-        o.tz,
-        "yyyy-LL-dd'T'HH:mm"
-      );
-    } else {
-      if (tzMode === "dest")
-        departLocalAtOrigin = convertLocalISO(depart, d.tz, o.tz);
-      else if (tzMode === "custom" && customTZ)
-        departLocalAtOrigin = convertLocalISO(depart, customTZ, o.tz);
-    }
+    if (tzMode === "dest")
+      departLocalAtOrigin = convertLocalISO(depart, d.tz, o.tz);
+    else if (tzMode === "custom" && customTZ)
+      departLocalAtOrigin = convertLocalISO(depart, customTZ, o.tz);
 
     onSubmit({
       origin: o,
       dest: d,
       departLocalISO: departLocalAtOrigin,
+      arriveLocalISO: arrive,
       preference: pref,
       from,
       to,
-      arriveLocalISO: arrive || undefined,
     });
     pushRecent({ from, to, depart, arrive });
   }
@@ -202,25 +219,27 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
         />
       </div>
 
-      <div className="grid md:grid-cols-4 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Departure{" "}
-            <span className="text-zinc-500 dark:text-zinc-400">
-              ({tzLabel})
-            </span>
-          </label>
-          <DateTime24 value={depart} onChange={(v) => setDepart(v)} />
-        </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Departure{" "}
+              <span className="text-zinc-500 dark:text-zinc-400">
+                ({tzLabel})
+              </span>
+            </label>
+            <DateTime24 value={depart} onChange={(v) => setDepart(v)} />
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Arrival{" "}
-            <span className="text-zinc-500 dark:text-zinc-400">
-              ({destAirport?.tz ?? "—"})
-            </span>
-          </label>
-          <DateTime24 value={arrive} onChange={(v) => setArrive(v)} />
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Arrival{" "}
+              <span className="text-zinc-500 dark:text-zinc-400">
+                ({destAirport?.tz ?? "—"})
+              </span>
+            </label>
+            <DateTime24 value={arrive} onChange={(v) => setArrive(v)} />
+          </div>
         </div>
 
         <div>
@@ -230,21 +249,33 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
               <button
                 type="button"
                 onClick={() => setTzMode("origin")}
-                className={`px-3 py-1.5 text-sm ${tzMode === "origin" ? "bg-white dark:bg-zinc-100 text-zinc-900" : "bg-transparent text-zinc-300"}`}
+                className={`px-3 py-1.5 text-sm ${
+                  tzMode === "origin"
+                    ? "bg-white dark:bg-zinc-100 text-zinc-900"
+                    : "bg-transparent text-zinc-300"
+                }`}
               >
                 Source
               </button>
               <button
                 type="button"
                 onClick={() => setTzMode("dest")}
-                className={`px-3 py-1.5 text-sm ${tzMode === "dest" ? "bg-white dark:bg-zinc-100 text-zinc-900" : "bg-transparent text-zinc-300"}`}
+                className={`px-3 py-1.5 text-sm ${
+                  tzMode === "dest"
+                    ? "bg-white dark:bg-zinc-100 text-zinc-900"
+                    : "bg-transparent text-zinc-300"
+                }`}
               >
                 Destination
               </button>
               <button
                 type="button"
                 onClick={() => setTzMode("custom")}
-                className={`px-3 py-1.5 text-sm ${tzMode === "custom" ? "bg-white dark:bg-zinc-100 text-zinc-900" : "bg-transparent text-zinc-300"}`}
+                className={`px-3 py-1.5 text-sm ${
+                  tzMode === "custom"
+                    ? "bg-white dark:bg-zinc-100 text-zinc-900"
+                    : "bg-transparent text-zinc-300"
+                }`}
               >
                 Custom
               </button>
@@ -252,9 +283,21 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
           </div>
           <div className="mt-2">
             <TimezoneSelect
-              value={tzMode === "custom" ? customTZ ?? "" : (tzMode === "origin" ? originAirport?.tz ?? "" : destAirport?.tz ?? "")}
-              onChange={(tz) => { setCustomTZ(tz); setTzMode("custom"); }}
-              onClearToCustom={() => { setCustomTZ(""); setTzMode("custom"); }}
+              value={
+                tzMode === "custom"
+                  ? customTZ ?? ""
+                  : tzMode === "origin"
+                  ? originAirport?.tz ?? ""
+                  : destAirport?.tz ?? ""
+              }
+              onChange={(tz) => {
+                setCustomTZ(tz);
+                setTzMode("custom");
+              }}
+              onClearToCustom={() => {
+                setCustomTZ("");
+                setTzMode("custom");
+              }}
               fullWidth
             />
           </div>

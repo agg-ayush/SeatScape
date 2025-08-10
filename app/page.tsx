@@ -21,7 +21,7 @@ export default function Home() {
   const router = useRouter();
   const search = useSearchParams();
 
-  // Build defaults from the URL (?from=...&to=...&depart=...|arrive=...); otherwise empty
+  // Build defaults from the URL (?from=...&to=...&depart=...&arrive=...); otherwise empty
   const defaults = useMemo(() => {
     const from = (search.get("from") || "").toUpperCase();
     const to = (search.get("to") || "").toUpperCase();
@@ -56,8 +56,8 @@ export default function Home() {
     const params = new URLSearchParams();
     params.set("from", s.from);
     params.set("to", s.to);
-    if (s.arriveLocalISO) params.set("arrive", s.arriveLocalISO);
-    else params.set("depart", s.departLocalISO);
+    params.set("depart", s.departLocalISO);
+    params.set("arrive", s.arriveLocalISO);
     router.replace(`/?${params.toString()}`);
   }
 

@@ -44,18 +44,8 @@ export default function PlaneSunViz({ samples }: Props) {
           viewBox="0 0 200 100"
           className="absolute left-1/2 top-1/2 h-20 w-40 -translate-x-1/2 -translate-y-1/2 fill-zinc-600 dark:fill-zinc-300"
         >
-          {/* nose */}
-          <polygon points="100,0 120,20 80,20" />
-          {/* fuselage */}
-          <rect x="80" y="20" width="40" height="50" />
-          {/* tail */}
-          <polygon points="100,100 120,70 80,70" />
-          {/* wings */}
-          <polygon points="100,35 180,55 180,65 100,45" />
-          <polygon points="100,35 20,55 20,65 100,45" />
-          {/* horizontal stabilizers */}
-          <polygon points="100,70 160,80 160,86 100,75" />
-          <polygon points="100,70 40,80 40,86 100,75" />
+          {/* Path handcrafted in Figma; cubic Beziers outline fuselage, wings, tail */}
+          <path d="M100 5 C112 12 122 24 122 38 C155 40 175 55 175 60 C175 65 155 80 122 82 C132 86 142 90 150 95 C140 98 120 100 100 99 C80 100 60 98 50 95 C58 90 68 86 78 82 C45 80 25 65 25 60 C25 55 45 40 78 38 C78 24 88 12 100 5 Z" />
         </svg>
 
         {/* sun position */}

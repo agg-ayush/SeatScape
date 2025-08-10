@@ -22,6 +22,7 @@ export default function PlaneSunViz({
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [localIdx, setLocalIdx] = useState(index);
+  const prevIdxRef = useRef(index);
 
   useEffect(() => {
     const update = () => {
@@ -36,6 +37,7 @@ export default function PlaneSunViz({
 
   useEffect(() => {
     setLocalIdx(index);
+    prevIdxRef.current = index;
   }, [index]);
 
   if (!samples || samples.length === 0) return null;
@@ -44,7 +46,6 @@ export default function PlaneSunViz({
   const s = samples[idx];
   const rel = sunPlaneRelation(s.az, s.course, s.alt);
   const showSun = s.alt > 0;
-
 
   const angleRad = (rel.relAz * Math.PI) / 180;
   const radius = width * (45 / 224);
@@ -96,6 +97,7 @@ export default function PlaneSunViz({
               height: sunSize,
               left: `calc(50% + ${sunX}px - ${sunSize / 2}px)`,
               top: `calc(50% + ${sunY}px - ${sunSize / 2}px)`,
+              transition: `left ${transitionSec}s linear, top ${transitionSec}s linear`,
             }}
           />
         )}

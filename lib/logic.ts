@@ -1,6 +1,6 @@
 import { Airport, Preference, Recommendation, Sample } from "./types";
 import { gcDistanceKm, intermediatePoint, trackAt, wrapTo180 } from "./geo";
-import { addMinutes, localISOToUTCDate, formatLocal } from "./time";
+import { addMinutes, localISOToUTCDate, formatLocal, diffMinutes } from "./time";
 import { sunAt, isSunEffective } from "./sun";
 import cities from "./cities.json";
 import type { City } from "./cities";
@@ -19,6 +19,7 @@ export function computeRecommendation(params: {
   origin: Airport;
   dest: Airport;
   departLocalISO: string; // e.g. "2025-08-10T18:30"
+  arriveLocalISO?: string; // optional arrival time in destination-local ISO
   preference: Preference;
   sampleMinutes?: number;
 }): Recommendation {
@@ -41,7 +42,13 @@ export function computeRecommendation(params: {
   const depUTC = localISOToUTCDate(params.departLocalISO, params.origin.tz);
 
   // Distance and duration
-  const totalMinutes = estimateDurationMinutes(origin, dest);
+  let totalMinutes: number;
+  if (params.arriveLocalISO) {
+    const arrUTC = localISOToUTCDate(params.arriveLocalISO, dest.tz);
+    totalMinutes = Math.max(1, diffMinutes(depUTC, arrUTC));
+  } else {
+    totalMinutes = estimateDurationMinutes(origin, dest);
+  }
 
   // Sampling
   let leftMinutes = 0;

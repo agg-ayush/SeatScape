@@ -113,6 +113,11 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
         <PlaneSunViz samples={rec.samples} />
       )}
 
+      {/* PlaneSunViz */}
+      {rec.samples && rec.samples.length > 0 && (
+        <PlaneSunViz samples={rec.samples} />
+      )}
+
       {/* Actions */}
       <div className="mt-3 flex items-center gap-3 flex-wrap">
         <button

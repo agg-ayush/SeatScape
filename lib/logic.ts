@@ -34,9 +34,12 @@ export function computeRecommendation(params: {
   let peakAltitudeDeg = -90;
   let sunriseUTC: string | undefined;
   let sunsetUTC: string | undefined;
+  let sunriseSide: "A" | "F" | undefined;
+  let sunsetSide: "A" | "F" | undefined;
   const samples: Sample[] = [];
 
   let wasEffective = false;
+  let currentSide: "A" | "F" | undefined;
 
   for (let elapsed = 0; elapsed <= totalMinutes; elapsed += sampleMinutes) {
     const frac = elapsed / totalMinutes;
@@ -56,11 +59,14 @@ export function computeRecommendation(params: {
 
       if (!wasEffective) {
         sunriseUTC = ts.toISOString();
+        sunriseSide = side;
         wasEffective = true;
       }
+      currentSide = side;
     } else {
       if (wasEffective) {
         sunsetUTC = ts.toISOString();
+        sunsetSide = currentSide;
         wasEffective = false;
       }
     }
@@ -98,7 +104,9 @@ export function computeRecommendation(params: {
     rightMinutes,
     peakAltitudeDeg: Math.round(peakAltitudeDeg * 10) / 10,
     sunriseUTC,
+    sunriseSide,
     sunsetUTC,
+    sunsetSide,
     confidence: Math.round(confidence * 100) / 100,
     samples,
   };

@@ -32,6 +32,12 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
     rec.sunsetUTC && dest
       ? formatLocal(new Date(rec.sunsetUTC), dest.tz, "HH:mm")
       : null;
+  const sunriseSideTxt = rec.sunriseSide
+    ? ` on ${rec.sunriseSide === "A" ? "A (left)" : "F (right)"}`
+    : "";
+  const sunsetSideTxt = rec.sunsetSide
+    ? ` on ${rec.sunsetSide === "A" ? "A (left)" : "F (right)"}`
+    : "";
 
   const rationale =
     preference === "avoid"
@@ -51,7 +57,15 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
 
   const textToCopy = `${headline} — ${rationale}${
     sunriseLocal || sunsetLocal
-      ? ` ${sunriseLocal ? `Sunrise ~${sunriseLocal} at ${origin?.iata ?? ""} (${origin?.tz ?? ""}).` : ""}${sunsetLocal ? ` Sunset ~${sunsetLocal} at ${dest?.iata ?? ""} (${dest?.tz ?? ""}).` : ""}`
+      ? ` ${
+          sunriseLocal
+            ? `Sunrise ~${sunriseLocal}${rec.sunriseSide ? ` on ${rec.sunriseSide}` : ""} at ${origin?.iata ?? ""} (${origin?.tz ?? ""}).`
+            : ""
+        }${
+          sunsetLocal
+            ? ` Sunset ~${sunsetLocal}${rec.sunsetSide ? ` on ${rec.sunsetSide}` : ""} at ${dest?.iata ?? ""} (${dest?.tz ?? ""}).`
+            : ""
+        }`
       : ""
   }`;
 
@@ -87,12 +101,14 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
         </span>
         {sunriseLocal && (
           <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
-            Sunrise ~{sunriseLocal} at {origin?.iata} ({origin?.tz})
+            Sunrise ~{sunriseLocal}
+            {sunriseSideTxt} at {origin?.iata} ({origin?.tz})
           </span>
         )}
         {sunsetLocal && (
           <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
-            Sunset ~{sunsetLocal} at {dest?.iata} ({dest?.tz})
+            Sunset ~{sunsetLocal}
+            {sunsetSideTxt} at {dest?.iata} ({dest?.tz})
           </span>
         )}
       </div>

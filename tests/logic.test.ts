@@ -17,6 +17,22 @@ const DXB: Airport = {
   tz: "Asia/Dubai",
 };
 
+const EQ0: Airport = {
+  iata: "EQ0",
+  name: "Equator",
+  lat: 0,
+  lon: 0,
+  tz: "Etc/UTC",
+};
+
+const N20: Airport = {
+  iata: "N20",
+  name: "20N",
+  lat: 20,
+  lon: 0,
+  tz: "Etc/UTC",
+};
+
 test("DEL to DXB evening — should produce a side and not crash", () => {
   const rec = computeRecommendation({
     origin: DEL,
@@ -29,4 +45,40 @@ test("DEL to DXB evening — should produce a side and not crash", () => {
   expect(rec.leftMinutes).toBeTypeOf("number");
   expect(rec.rightMinutes).toBeTypeOf("number");
   expect(rec.samples.length).toBeGreaterThan(0);
+});
+
+test("sunrise side determination", () => {
+  const north = computeRecommendation({
+    origin: EQ0,
+    dest: N20,
+    departLocalISO: "2025-08-10T04:50",
+    preference: "see",
+  });
+  expect(north.sunriseSide).toBe("A");
+
+  const south = computeRecommendation({
+    origin: N20,
+    dest: EQ0,
+    departLocalISO: "2025-08-10T04:50",
+    preference: "see",
+  });
+  expect(south.sunriseSide).toBe("F");
+});
+
+test("sunset side determination", () => {
+  const north = computeRecommendation({
+    origin: EQ0,
+    dest: N20,
+    departLocalISO: "2025-08-10T17:10",
+    preference: "see",
+  });
+  expect(north.sunsetSide).toBe("F");
+
+  const south = computeRecommendation({
+    origin: N20,
+    dest: EQ0,
+    departLocalISO: "2025-08-10T17:10",
+    preference: "see",
+  });
+  expect(south.sunsetSide).toBe("A");
 });

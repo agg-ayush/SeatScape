@@ -180,7 +180,7 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
           label="From (IATA)"
           placeholder="e.g., JFK"
           value={from}
-          onChange={(v) => setFrom(v.toUpperCase())}
+          onChange={(v) => setFrom(v ? v.toUpperCase() : "")}
           airports={airports}
           inputRef={fromRef}
         />
@@ -197,7 +197,7 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
           label="To (IATA)"
           placeholder="e.g., LHR"
           value={to}
-          onChange={(v) => setTo(v.toUpperCase())}
+          onChange={(v) => setTo(v ? v.toUpperCase() : "")}
           airports={airports}
         />
       </div>

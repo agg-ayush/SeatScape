@@ -16,7 +16,6 @@ export function computeRecommendation(params: {
   const {
     origin,
     dest,
-    departLocalISO,
     preference,
     sampleMinutes = 5,
   } = params;

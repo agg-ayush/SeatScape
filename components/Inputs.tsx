@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import airportsData from "@/lib/airports.json";
 import type { Airport, Preference } from "@/lib/types";
 import IataCombo from "@/components/IataCombo";

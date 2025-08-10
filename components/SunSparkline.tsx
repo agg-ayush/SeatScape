@@ -13,6 +13,7 @@ type Props = {
   sunsetIndex?: number;
   sunriseTz?: string;
   sunsetTz?: string;
+  index?: number;
 };
 
 export default function SunSparkline({
@@ -23,6 +24,7 @@ export default function SunSparkline({
   sunsetIndex,
   sunriseTz,
   sunsetTz,
+  index,
 }: Props) {
   // Reserve space on top for the legend so the path never overlaps it
   const LEGEND_SPACE = 34;
@@ -96,11 +98,22 @@ export default function SunSparkline({
     if (!samples.length) return [];
     const start = new Date(samples[0].utc);
     const end = new Date(samples[samples.length - 1].utc);
-    const intervals = 4;
-    const delta = end.getTime() - start.getTime();
-    return Array.from({ length: intervals + 1 }, (_, i) =>
-      formatLocal(new Date(start.getTime() + (delta * i) / intervals), tz ?? "UTC", "HH:mm"),
-    );
+    const ticks: string[] = [];
+    // Always include start time
+    ticks.push(formatLocal(start, tz ?? "UTC", "HH:mm"));
+    // Next whole hour after start
+    const cur = new Date(start);
+    cur.setMinutes(0, 0, 0);
+    cur.setHours(cur.getHours() + 1);
+    while (cur < end) {
+      ticks.push(formatLocal(cur, tz ?? "UTC", "HH:mm"));
+      cur.setHours(cur.getHours() + 1);
+    }
+    // Include end time
+    if (end.getTime() !== start.getTime()) {
+      ticks.push(formatLocal(end, tz ?? "UTC", "HH:mm"));
+    }
+    return ticks;
   }, [samples, tz]);
 
   if (!model) return null;
@@ -116,6 +129,9 @@ export default function SunSparkline({
     sunPath,
     xScale,
   } = model;
+
+  const activeIdx = index !== undefined ? Math.min(index, samples.length - 1) : undefined;
+  const activePt = activeIdx !== undefined ? pts[activeIdx] : null;
 
   const sunriseX =
     sunriseIndex !== undefined ? xScale(sunriseIndex) : null;
@@ -197,6 +213,18 @@ export default function SunSparkline({
           cy={pts[lastIdx].y}
           r="5"
           fill="#ef4444"
+          stroke="#fff"
+          strokeWidth="1.5"
+        />
+      )}
+
+      {/* Active marker */}
+      {activePt && (
+        <circle
+          cx={activePt.x}
+          cy={activePt.y}
+          r="5"
+          fill="#fbbf24"
           stroke="#fff"
           strokeWidth="1.5"
         />

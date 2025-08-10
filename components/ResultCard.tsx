@@ -126,6 +126,7 @@ export default function ResultCard({ rec, origin, dest, preference, sampleIndex,
             sunsetIndex={rec.sunsetSampleIndex}
             sunriseTz={rec.sunriseTz || origin?.tz}
             sunsetTz={rec.sunsetTz || dest?.tz}
+            index={sampleIndex}
           />
         </div>
       )}

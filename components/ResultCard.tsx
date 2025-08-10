@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import type { Recommendation, Airport, Preference } from "@/lib/types";
-import { formatLocal } from "@/lib/time";
+import { firstSunIndex, lastSunIndex, sampleLocalHM } from "@/lib/logic";
 import SunSparkline from "@/components/SunSparkline";
 import PlaneSunViz from "@/components/PlaneSunViz";
 
@@ -26,20 +26,18 @@ export default function ResultCard({ rec, origin, dest, preference, sampleIndex,
       ? Math.round((Math.max(rec.leftMinutes, rec.rightMinutes) / total) * 100)
       : 0;
 
+  const sunriseIdx = firstSunIndex(rec.samples);
+  const sunsetIdx = lastSunIndex(rec.samples);
   const sunriseLocal =
-    rec.sunriseUTC && (rec.sunriseTz || origin?.tz)
-      ? formatLocal(new Date(rec.sunriseUTC), (rec.sunriseTz || origin?.tz)!, "HH:mm")
-      : null;
+    sunriseIdx !== null && origin?.tz ? sampleLocalHM(rec.samples, sunriseIdx, origin.tz) : null;
   const sunsetLocal =
-    rec.sunsetUTC && (rec.sunsetTz || dest?.tz)
-      ? formatLocal(new Date(rec.sunsetUTC), (rec.sunsetTz || dest?.tz)!, "HH:mm")
-      : null;
-  const sunriseSideTxt = rec.sunriseSide
-    ? ` on ${rec.sunriseSide === "A" ? "A (left)" : "F (right)"}`
-    : " visible from both sides";
-  const sunsetSideTxt = rec.sunsetSide
-    ? ` on ${rec.sunsetSide === "A" ? "A (left)" : "F (right)"}`
-    : " visible from both sides";
+    sunsetIdx !== null && origin?.tz ? sampleLocalHM(rec.samples, sunsetIdx, origin.tz) : null;
+  const sunriseSide = sunriseIdx !== null ? rec.samples[sunriseIdx].side : "none";
+  const sunsetSide = sunsetIdx !== null ? rec.samples[sunsetIdx].side : "none";
+  const sunriseSideTxt =
+    sunriseSide === "A" ? " on A (left)" : sunriseSide === "F" ? " on F (right)" : "";
+  const sunsetSideTxt =
+    sunsetSide === "A" ? " on A (left)" : sunsetSide === "F" ? " on F (right)" : "";
 
   const rationale =
     preference === "avoid"
@@ -61,19 +59,15 @@ export default function ResultCard({ rec, origin, dest, preference, sampleIndex,
     sunriseLocal || sunsetLocal
       ? ` ${
           sunriseLocal
-            ? `Sunrise ~${sunriseLocal}${
-                rec.sunriseSide ? ` on ${rec.sunriseSide}` : " visible from both sides"
-              }${
+            ? `Sunrise ~${sunriseLocal}${sunriseSideTxt}${
                 rec.sunriseCity ? ` near ${rec.sunriseCity}` : origin ? ` at ${origin.iata}` : ""
-              } (${rec.sunriseTz || origin?.tz || ""}).`
+              } (${origin?.tz || ""}).`
             : ""
         }${
           sunsetLocal
-            ? ` Sunset ~${sunsetLocal}${
-                rec.sunsetSide ? ` on ${rec.sunsetSide}` : " visible from both sides"
-              }${
+            ? ` Sunset ~${sunsetLocal}${sunsetSideTxt}${
                 rec.sunsetCity ? ` near ${rec.sunsetCity}` : dest ? ` at ${dest.iata}` : ""
-              } (${rec.sunsetTz || dest?.tz || ""}).`
+              } (${origin?.tz || ""}).`
             : ""
         }`
       : ""
@@ -113,18 +107,12 @@ export default function ResultCard({ rec, origin, dest, preference, sampleIndex,
           <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
             Sunrise ~{sunriseLocal}
             {sunriseSideTxt}
-            {rec.sunriseCity ? ` near ${rec.sunriseCity}` : origin ? ` at ${origin.iata}` : ""} ({
-              rec.sunriseTz || origin?.tz
-            })
           </span>
         )}
         {sunsetLocal && (
           <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
             Sunset ~{sunsetLocal}
             {sunsetSideTxt}
-            {rec.sunsetCity ? ` near ${rec.sunsetCity}` : dest ? ` at ${dest.iata}` : ""} ({
-              rec.sunsetTz || dest?.tz
-            })
           </span>
         )}
       </div>

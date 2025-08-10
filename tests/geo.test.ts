@@ -3,6 +3,7 @@ import {
   gcDistanceKm,
   initialBearing,
   intermediatePoint,
+  trackAt,
   splitAtAntimeridian,
 } from "../lib/geo";
 import { computeRecommendation } from "../lib/logic";
@@ -64,4 +65,9 @@ test("splitAtAntimeridian handles polar-crossing routes", () => {
       expect(diff).toBeLessThanOrEqual(180);
     }
   }
+});
+
+test("trackAt handles final fraction", () => {
+  const course = initialBearing({ lat: 0, lon: 0 }, { lat: 0, lon: 10 });
+  expect(trackAt({ lat: 0, lon: 0 }, { lat: 0, lon: 10 }, 1)).toBeCloseTo(course, 6);
 });

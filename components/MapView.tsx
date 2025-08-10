@@ -15,6 +15,7 @@ import {
 import type { Sample } from "@/lib/types";
 import type { PassBy } from "@/lib/cities";
 import L from "leaflet";
+import { splitAntimeridian } from "@/lib/geo";
 
 type Props = {
   samples: Sample[] | null;
@@ -27,14 +28,14 @@ type Props = {
   planeIndex?: number;
 };
 
-const FitBounds = ({ samples }: { samples: Sample[] }) => {
+const FitBounds = ({ points }: { points: { lat: number; lon: number }[] }) => {
   const map = useMap();
   useEffect(() => {
-    if (!samples.length) return;
-    const latlngs = samples.map((s) => [s.lat, s.lon]) as [number, number][];
+    if (!points.length) return;
+    const latlngs = points.map((p) => [p.lat, p.lon]) as [number, number][];
     const bounds = L.latLngBounds(latlngs);
     map.fitBounds(bounds, { padding: [24, 24] });
-  }, [samples, map]);
+  }, [points, map]);
   return null;
 };
 
@@ -42,7 +43,8 @@ export default function MapView({ samples, cities = [], thresholdKm = 75, sunris
   const [legendOpen, setLegendOpen] = useState(true);
   if (!samples || samples.length < 2) return null;
 
-  const latlngs = samples.map((s) => [s.lat, s.lon]) as [number, number][];
+  const segments = splitAntimeridian(samples.map((s) => ({ lat: s.lat, lon: s.lon })));
+  const flatPoints = segments.flat();
   const sunriseSample = sunriseIndex !== undefined ? samples[sunriseIndex] : null;
   const sunsetSample = sunsetIndex !== undefined ? samples[sunsetIndex] : null;
   const sunriseIcon = L.divIcon({ className: "", html: "🌅", iconSize: [20, 20], iconAnchor: [10, 10] });
@@ -68,7 +70,7 @@ export default function MapView({ samples, cities = [], thresholdKm = 75, sunris
     <div className="relative overflow-hidden rounded-2xl shadow bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
       <MapContainer
         style={{ height: 420, width: "100%" }}
-        center={[latlngs[0][0], latlngs[0][1]]}
+        center={[samples[0].lat, samples[0].lon]}
         zoom={4}
         scrollWheelZoom={false}
       >
@@ -79,7 +81,9 @@ export default function MapView({ samples, cities = [], thresholdKm = 75, sunris
 
         {/* route line below markers */}
         <Pane name="route" style={{ zIndex: 400 }}>
-          <Polyline positions={latlngs} />
+          {segments.map((seg, i) => (
+            <Polyline key={i} positions={seg.map((p) => [p.lat, p.lon])} />
+          ))}
         </Pane>
 
         {/* city markers */}
@@ -132,7 +136,7 @@ export default function MapView({ samples, cities = [], thresholdKm = 75, sunris
           )}
         </Pane>
 
-        <FitBounds samples={samples} />
+        <FitBounds points={flatPoints} />
       </MapContainer>
 
       {/* Legend (bottom-left) */}

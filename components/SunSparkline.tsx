@@ -129,7 +129,14 @@ export default function SunSparkline({
     return ticks;
   }, [samples, tz]);
 
-  if (!model) return null;
+  if (!model)
+    return (
+      <div
+        ref={containerRef}
+        style={{ height }}
+        className="relative mt-3 overflow-hidden rounded-lg"
+      />
+    );
 
   const {
     width: W,

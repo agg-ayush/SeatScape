@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -37,7 +38,6 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
       ? `keeps direct sun away for about ${100 - sunPct}% of the flight`
       : `sun graces that side for roughly ${sunPct}% of the flight`;
 
-  // Normalize whatever we got ("A", "F", "A (left)", "F (right)", etc.)
   const sideRaw = String(rec.side ?? "").trim();
   const sideLetter = sideRaw.startsWith("A")
     ? "A"
@@ -51,13 +51,7 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
 
   const textToCopy = `${headline} — ${rationale}${
     sunriseLocal || sunsetLocal
-      ? ` ${
-          sunriseLocal
-            ? `Sunrise ~${sunriseLocal} at ${origin?.iata ?? ""}.`
-            : ""
-        }${
-          sunsetLocal ? ` Sunset ~${sunsetLocal} at ${dest?.iata ?? ""}.` : ""
-        }`
+      ? ` ${sunriseLocal ? `Sunrise ~${sunriseLocal} at ${origin?.iata ?? ""} (${origin?.tz ?? ""}).` : ""}${sunsetLocal ? ` Sunset ~${sunsetLocal} at ${dest?.iata ?? ""} (${dest?.tz ?? ""}).` : ""}`
       : ""
   }`;
 
@@ -79,13 +73,11 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
         </span>
       </div>
 
-      {/* Headline */}
       <h2 className="text-2xl font-extrabold tracking-tight">{headline}</h2>
       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
         Peak sun altitude around {rec.peakAltitudeDeg}° above the horizon. Confidence {Math.round(rec.confidence * 100)}%.
       </p>
 
-      {/* Info pills */}
       <div className="mt-3 flex flex-wrap gap-2">
         <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
           {preference === "avoid" ? "Avoid glare" : "See the sun"}
@@ -95,21 +87,25 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
         </span>
         {sunriseLocal && (
           <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
-            Sunrise ~{sunriseLocal} at {origin?.iata}
+            Sunrise ~{sunriseLocal} at {origin?.iata} ({origin?.tz})
           </span>
         )}
         {sunsetLocal && (
           <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
-            Sunset ~{sunsetLocal} at {dest?.iata}
+            Sunset ~{sunsetLocal} at {dest?.iata} ({dest?.tz})
           </span>
         )}
       </div>
 
-      {/* Sparkline */}
       {rec.samples && rec.samples.length > 1 && (
         <div className="text-zinc-700 dark:text-zinc-200">
           <SunSparkline samples={rec.samples} />
         </div>
+      )}
+      
+      {/* PlaneSunViz */}
+      {rec.samples && rec.samples.length > 0 && (
+        <PlaneSunViz samples={rec.samples} />
       )}
 
       {/* PlaneSunViz */}

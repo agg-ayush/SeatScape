@@ -6,6 +6,9 @@ import type { Airport, Preference } from "@/lib/types";
 import IataCombo from "@/components/IataCombo";
 import { ArrowsRightLeftIcon } from "@heroicons/react/24/outline";
 import { convertLocalISO } from "@/lib/time";
+import TimezoneSelect from "@/components/TimezoneSelect";
+import PreferenceToggle from "@/components/PreferenceToggle";
+import DateTime24 from "@/components/DateTime24";
 
 export type InputsSnapshot = {
   origin: Airport;
@@ -21,15 +24,17 @@ type Props = {
   onSubmit: (data: InputsSnapshot) => void;
   defaults?: Defaults;
   loading?: boolean;
+  onClearAll?: () => void;
 };
-type TZMode = "origin" | "dest" | "utc";
+type TZMode = "origin" | "dest" | "custom";
 type Recent = { from: string; to: string; depart: string };
 
-export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
+export default function Inputs({ onSubmit, defaults, loading = false, onClearAll }: Props) {
   const [from, setFrom] = useState(defaults?.from ?? "");
   const [to, setTo] = useState(defaults?.to ?? "");
   const [depart, setDepart] = useState(defaults?.depart ?? "");
   const [tzMode, setTzMode] = useState<TZMode>("origin");
+  const [customTZ, setCustomTZ] = useState<string | null>(null);
   const [pref, setPref] = useState<Preference>("see");
   const [error, setError] = useState<string | null>(null);
   const [recent, setRecent] = useState<Recent[]>([]);
@@ -55,14 +60,6 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
     airports.find((a) => a.iata.toUpperCase() === code.toUpperCase());
 
   useEffect(() => {
-    if (!defaults) {
-      if (!from && lookup("DEL")) setFrom("DEL");
-      if (!to && lookup("DXB")) setTo("DXB");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
     try {
       const raw = localStorage.getItem("ss_recent");
       if (raw) setRecent(JSON.parse(raw).slice(0, 3));
@@ -81,12 +78,13 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
 
   const originAirport = lookup(from);
   const destAirport = lookup(to);
+
   const tzLabel =
     tzMode === "origin"
       ? originAirport?.tz ?? "—"
       : tzMode === "dest"
       ? destAirport?.tz ?? "—"
-      : "UTC";
+      : customTZ || "—";
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -100,8 +98,8 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
     let departLocalAtOrigin = depart;
     if (tzMode === "dest")
       departLocalAtOrigin = convertLocalISO(depart, d.tz, o.tz);
-    else if (tzMode === "utc")
-      departLocalAtOrigin = convertLocalISO(depart, "UTC", o.tz);
+    else if (tzMode === "custom" && customTZ)
+      departLocalAtOrigin = convertLocalISO(depart, customTZ, o.tz);
 
     onSubmit({
       origin: o,
@@ -119,18 +117,18 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
     setTo("");
     setDepart("");
     setError(null);
+    try { localStorage.removeItem("ss_recent"); } catch {}
+    setRecent([]);
     fromRef.current?.focus();
+    onClearAll?.();
   }
   function swap() {
     const old = from;
     setFrom(to);
     setTo(old);
-    setTzMode((m) =>
-      m === "origin" ? "dest" : m === "dest" ? "origin" : "utc"
-    );
+    setTzMode((m) => (m === "origin" ? "dest" : m === "dest" ? "origin" : "custom"));
   }
 
-  // helper to set a preset quickly
   function applyPreset(a: string, b: string, h = 7, m = 0) {
     setFrom(a);
     setTo(b);
@@ -143,6 +141,13 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
       .slice(0, 16);
     setDepart(iso);
   }
+
+  const chipKey = (onActivate: () => void) => (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onActivate();
+    }
+  };
 
   return (
     <form
@@ -162,7 +167,7 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
         <button
           type="button"
           onClick={swap}
-          className="self-end justify-self-center rounded-full p-2 border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+          className="self-end justify-self-center rounded-full p-2 border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
           title="Swap From/To"
           aria-label="Swap From and To"
         >
@@ -182,78 +187,57 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
           <label className="block text-sm font-medium mb-1">
             Departure{" "}
             <span className="text-zinc-500 dark:text-zinc-400">
-              ({tzMode === "utc" ? "UTC" : tzLabel})
+              ({tzLabel})
             </span>
           </label>
-          <input
-            type="datetime-local"
-            value={depart}
-            onChange={(e) => setDepart(e.target.value)}
-            className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10"
-          />
+          <DateTime24 value={depart} onChange={(v) => setDepart(v)} />
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Time zone</label>
-          <div className="flex gap-3 flex-wrap">
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="radio"
-                name="tz"
-                checked={tzMode === "origin"}
-                onChange={() => setTzMode("origin")}
-              />
-              <span>Origin</span>
-            </label>
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="radio"
-                name="tz"
-                checked={tzMode === "dest"}
-                onChange={() => setTzMode("dest")}
-              />
-              <span>Destination</span>
-            </label>
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="radio"
-                name="tz"
-                checked={tzMode === "utc"}
-                onChange={() => setTzMode("utc")}
-              />
-              <span>UTC</span>
-            </label>
+          <div className="flex gap-2">
+            <div className="inline-flex rounded-full border border-zinc-300 dark:border-zinc-700 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setTzMode("origin")}
+                className={`px-3 py-1.5 text-sm ${tzMode === "origin" ? "bg-white dark:bg-zinc-100 text-zinc-900" : "bg-transparent text-zinc-300"}`}
+              >
+                Source
+              </button>
+              <button
+                type="button"
+                onClick={() => setTzMode("dest")}
+                className={`px-3 py-1.5 text-sm ${tzMode === "dest" ? "bg-white dark:bg-zinc-100 text-zinc-900" : "bg-transparent text-zinc-300"}`}
+              >
+                Destination
+              </button>
+              <button
+                type="button"
+                onClick={() => setTzMode("custom")}
+                className={`px-3 py-1.5 text-sm ${tzMode === "custom" ? "bg-white dark:bg-zinc-100 text-zinc-900" : "bg-transparent text-zinc-300"}`}
+              >
+                Custom
+              </button>
+            </div>
+          </div>
+          <div className="mt-2">
+            <TimezoneSelect
+              value={tzMode === "custom" ? customTZ ?? "" : (tzMode === "origin" ? originAirport?.tz ?? "" : destAirport?.tz ?? "")}
+              onChange={(tz) => { setCustomTZ(tz); setTzMode("custom"); }}
+              onClearToCustom={() => { setCustomTZ(""); setTzMode("custom"); }}
+              fullWidth
+            />
           </div>
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Preference</label>
-          <div className="flex items-center gap-4">
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="radio"
-                name="pref"
-                checked={pref === "see"}
-                onChange={() => setPref("see")}
-              />
-              <span>See the sun</span>
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="radio"
-                name="pref"
-                checked={pref === "avoid"}
-                onChange={() => setPref("avoid")}
-              />
-              <span>Avoid glare</span>
-            </label>
-          </div>
+          <PreferenceToggle value={pref} onChange={setPref} />
         </div>
       </div>
 
       {error && <p className="text-red-600">{error}</p>}
 
-      {/* Example presets + recent */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
           Examples:
@@ -261,21 +245,27 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
         <button
           type="button"
           onClick={() => applyPreset("DEL", "DXB", 18, 30)}
-          className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+          onKeyDown={chipKey(() => applyPreset("DEL", "DXB", 18, 30))}
+          className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+          role="button"
         >
           DEL→DXB 18:30
         </button>
         <button
           type="button"
           onClick={() => applyPreset("SFO", "JFK", 7, 0)}
-          className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+          onKeyDown={chipKey(() => applyPreset("SFO", "JFK", 7, 0))}
+          className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+          role="button"
         >
           SFO→JFK 07:00
         </button>
         <button
           type="button"
           onClick={() => applyPreset("LHR", "CDG", 16, 0)}
-          className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+          onKeyDown={chipKey(() => applyPreset("LHR", "CDG", 16, 0))}
+          className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+          role="button"
         >
           LHR→CDG 16:00
         </button>
@@ -295,7 +285,13 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
                   setTo(r.to);
                   setDepart(r.depart);
                 }}
-                className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                onKeyDown={chipKey(() => {
+                  setFrom(r.from);
+                  setTo(r.to);
+                  setDepart(r.depart);
+                })}
+                className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+                role="button"
               >
                 {r.from}→{r.to}
               </button>
@@ -304,7 +300,6 @@ export default function Inputs({ onSubmit, defaults, loading = false }: Props) {
         )}
       </div>
 
-      {/* actions */}
       <div className="flex gap-2 flex-wrap items-center">
         <button
           type="submit"

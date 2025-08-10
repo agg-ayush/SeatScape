@@ -74,7 +74,7 @@ export default function SunSparkline({ samples, height = 100 }: Props) {
       fullPath,
       sunPath,
     };
-  }, [samples, height]);
+  }, [samples, height, paddingTop]);
 
   if (!model) return null;
 

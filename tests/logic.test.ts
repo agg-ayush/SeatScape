@@ -29,4 +29,8 @@ test("DEL to DXB evening — should produce a side and not crash", () => {
   expect(rec.leftMinutes).toBeTypeOf("number");
   expect(rec.rightMinutes).toBeTypeOf("number");
   expect(rec.samples.length).toBeGreaterThan(0);
+  expect(rec).toHaveProperty("sunriseSampleIndex");
+  expect(rec).toHaveProperty("sunsetSampleIndex");
+  expect(rec).toHaveProperty("sunriseCity");
+  expect(rec).toHaveProperty("sunsetCity");
 });

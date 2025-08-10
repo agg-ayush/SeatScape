@@ -16,7 +16,6 @@ export function computeRecommendation(params: {
   const {
     origin,
     dest,
-    departLocalISO,
     preference,
     sampleMinutes = 5,
   } = params;
@@ -35,11 +34,13 @@ export function computeRecommendation(params: {
   let peakAltitudeDeg = -90;
   let sunriseUTC: string | undefined;
   let sunsetUTC: string | undefined;
+  let sunriseSampleIndex: number | undefined;
+  let sunsetSampleIndex: number | undefined;
   const samples: Sample[] = [];
 
   let wasEffective = false;
 
-  for (let elapsed = 0; elapsed <= totalMinutes; elapsed += sampleMinutes) {
+  for (let elapsed = 0, idx = 0; elapsed <= totalMinutes; elapsed += sampleMinutes, idx++) {
     const frac = elapsed / totalMinutes;
     const pos = intermediatePoint(origin, dest, frac);
     const course = trackAt(origin, dest, frac);
@@ -57,11 +58,13 @@ export function computeRecommendation(params: {
 
       if (!wasEffective) {
         sunriseUTC = ts.toISOString();
+        sunriseSampleIndex = idx;
         wasEffective = true;
       }
     } else {
       if (wasEffective) {
         sunsetUTC = ts.toISOString();
+        sunsetSampleIndex = idx;
         wasEffective = false;
       }
     }
@@ -100,6 +103,10 @@ export function computeRecommendation(params: {
     peakAltitudeDeg: Math.round(peakAltitudeDeg * 10) / 10,
     sunriseUTC,
     sunsetUTC,
+    sunriseSampleIndex,
+    sunsetSampleIndex,
+    sunriseCity: sunriseUTC ? origin.name : undefined,
+    sunsetCity: sunsetUTC ? dest.name : undefined,
     confidence: Math.round(confidence * 100) / 100,
     samples,
   };

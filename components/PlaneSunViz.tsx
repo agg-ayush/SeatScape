@@ -1,15 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import type { Sample } from "@/lib/types";
 import { sunPlaneRelation } from "@/lib/plane";
+import SunEventMarker from "@/components/SunEventMarker";
+import sliderStyles from "./ui/slider.module.css";
 
 interface Props {
   samples: Sample[] | null;
+  sunriseIndex?: number;
+  sunsetIndex?: number;
 }
 
-export default function PlaneSunViz({ samples }: Props) {
+export default function PlaneSunViz({ samples, sunriseIndex, sunsetIndex }: Props) {
   const [index, setIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    const update = () => {
+      if (containerRef.current) {
+        setWidth(containerRef.current.clientWidth);
+      }
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
   if (!samples || samples.length === 0) return null;
 
   const idx = Math.min(index, samples.length - 1);
@@ -17,18 +35,41 @@ export default function PlaneSunViz({ samples }: Props) {
   const rel = sunPlaneRelation(s.az, s.course, s.alt);
 
   const angleRad = (rel.relAz * Math.PI) / 180;
-  const radius = 45;
+  const radius = width * (45 / 224);
   const sunX = Math.sin(angleRad) * radius;
   const sunY = -Math.cos(angleRad) * radius;
+  const glareWidth = width * (160 / 224);
+  const glareHeight = width * (48 / 224);
+  const planeWidth = width * (160 / 224);
+  const planeHeight = width * (80 / 224);
+  const sunSize = width * (24 / 224);
 
   const leftOpacity = rel.side === "A" ? rel.intensity : 0;
   const rightOpacity = rel.side === "F" ? rel.intensity : 0;
 
+  const sunrisePct =
+    sunriseIndex !== undefined && samples.length > 1
+      ? (sunriseIndex / (samples.length - 1)) * 100
+      : null;
+  const sunsetPct =
+    sunsetIndex !== undefined && samples.length > 1
+      ? (sunsetIndex / (samples.length - 1)) * 100
+      : null;
+  const sunriseTime =
+    sunriseIndex !== undefined ?
+      new Date(samples[sunriseIndex].utc).toISOString().slice(11, 16) : null;
+  const sunsetTime =
+    sunsetIndex !== undefined ?
+      new Date(samples[sunsetIndex].utc).toISOString().slice(11, 16) : null;
+
   return (
-    <div className="mt-4">
-      <div className="relative mx-auto h-32 w-56">
+    <div className="mt-4 mx-auto w-full max-w-sm">
+      <div ref={containerRef} className="relative w-full aspect-[2/1]">
         {/* glare overlays */}
-        <div className="absolute left-1/2 top-1/2 h-12 w-40 -translate-x-1/2 -translate-y-1/2 flex">
+        <div
+          className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2"
+          style={{ width: glareWidth, height: glareHeight }}
+        >
           <div
             className="h-full w-1/2 bg-yellow-300/60 transition-opacity"
             style={{ opacity: leftOpacity }}
@@ -42,32 +83,64 @@ export default function PlaneSunViz({ samples }: Props) {
         {/* plane silhouette */}
         <svg
           viewBox="0 0 200 100"
-          className="absolute left-1/2 top-1/2 h-20 w-40 -translate-x-1/2 -translate-y-1/2 fill-zinc-600 dark:fill-zinc-300"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 fill-zinc-600 dark:fill-zinc-300"
+          style={{ width: planeWidth, height: planeHeight }}
         >
-          {/* nose */}
-          <polygon points="100,0 120,20 80,20" />
-          {/* fuselage */}
-          <rect x="80" y="20" width="40" height="50" />
-          {/* tail */}
-          <polygon points="100,100 120,70 80,70" />
-          {/* wings */}
-          <polygon points="100,35 180,55 180,65 100,45" />
-          <polygon points="100,35 20,55 20,65 100,45" />
-          {/* horizontal stabilizers */}
-          <polygon points="100,70 160,80 160,86 100,75" />
-          <polygon points="100,70 40,80 40,86 100,75" />
+          {/* Path handcrafted in Figma; cubic Beziers outline fuselage, wings, tail */}
+          <path d="M100 5 C112 12 122 24 122 38 C155 40 175 55 175 60 C175 65 155 80 122 82 C132 86 142 90 150 95 C140 98 120 100 100 99 C80 100 60 98 50 95 C58 90 68 86 78 82 C45 80 25 65 25 60 C25 55 45 40 78 38 C78 24 88 12 100 5 Z" />
         </svg>
 
         {/* sun position */}
         <div
-          className="absolute h-6 w-6 rounded-full bg-yellow-400 border border-yellow-500 shadow"
+          className="absolute rounded-full bg-yellow-400 border border-yellow-500 shadow"
           style={{
-            left: `calc(50% + ${sunX}px - 12px)`,
-            top: `calc(50% + ${sunY}px - 12px)`,
+            width: sunSize,
+            height: sunSize,
+            left: `calc(50% + ${sunX}px - ${sunSize / 2}px)`,
+            top: `calc(50% + ${sunY}px - ${sunSize / 2}px)`,
           }}
         />
+        {sunrisePct !== null && sunriseTime && (
+          <SunEventMarker
+            type="sunrise"
+            time={sunriseTime}
+            style={{ left: `${sunrisePct}%`, top: 0, transform: "translate(-50%, -100%)" }}
+          />
+        )}
+        {sunsetPct !== null && sunsetTime && (
+          <SunEventMarker
+            type="sunset"
+            time={sunsetTime}
+            style={{ left: `${sunsetPct}%`, top: 0, transform: "translate(-50%, -100%)" }}
+          />
+        )}
       </div>
       {samples.length > 1 && (
+        <div className="relative mt-2">
+          {sunrisePct !== null && sunriseTime && (
+            <SunEventMarker
+              type="sunrise"
+              time={sunriseTime}
+              style={{ left: `${sunrisePct}%`, top: -20, transform: "translate(-50%, -100%)" }}
+            />
+          )}
+          {sunsetPct !== null && sunsetTime && (
+            <SunEventMarker
+              type="sunset"
+              time={sunsetTime}
+              style={{ left: `${sunsetPct}%`, top: -20, transform: "translate(-50%, -100%)" }}
+            />
+          )}
+          <input
+            type="range"
+            min={0}
+            max={samples.length - 1}
+            value={idx}
+            onChange={(e) => setIndex(Number(e.target.value))}
+            aria-label="Time along flight"
+            className="w-full cursor-pointer appearance-none accent-zinc-600 dark:accent-zinc-300 [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-zinc-200 dark:[&::-webkit-slider-runnable-track]:bg-zinc-700 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-zinc-600 dark:[&::-webkit-slider-thumb]:bg-zinc-300"
+          />
+        </div>
         <input
           type="range"
           min={0}
@@ -75,7 +148,8 @@ export default function PlaneSunViz({ samples }: Props) {
           value={idx}
           onChange={(e) => setIndex(Number(e.target.value))}
           aria-label="Time along flight"
-          className="mt-2 w-full cursor-pointer appearance-none accent-zinc-600 dark:accent-zinc-300 [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-zinc-200 dark:[&::-webkit-slider-runnable-track]:bg-zinc-700 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-zinc-600 dark:[&::-webkit-slider-thumb]:bg-zinc-300"
+          className={`mt-2 w-full cursor-pointer ${sliderStyles.range}`}
+          style={{ "--progress": `${(idx / (samples.length - 1)) * 100}%` } as CSSProperties}
         />
       )}
     </div>

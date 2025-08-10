@@ -2,6 +2,8 @@ import { Airport, Preference, Recommendation, Sample } from "./types";
 import { gcDistanceKm, intermediatePoint, trackAt, wrapTo180 } from "./geo";
 import { addMinutes, localISOToUTCDate } from "./time";
 import { sunAt, isSunEffective } from "./sun";
+import cities from "./cities.json";
+import type { City } from "./cities";
 
 /**
  * Compute seat recommendation for a flight.
@@ -20,6 +22,19 @@ export function computeRecommendation(params: {
     sampleMinutes = 5,
   } = params;
 
+  function nearestCityName(lat: number, lon: number): string | undefined {
+    let best: string | undefined;
+    let bestDist = Infinity;
+    for (const c of cities as City[]) {
+      const d = gcDistanceKm({ lat, lon }, { lat: c.lat, lon: c.lon });
+      if (d < bestDist) {
+        bestDist = d;
+        best = c.name;
+      }
+    }
+    return best;
+  }
+
   // Convert departure local time to UTC Date
   const depUTC = localISOToUTCDate(params.departLocalISO, params.origin.tz);
 
@@ -37,6 +52,7 @@ export function computeRecommendation(params: {
   let sunsetUTC: string | undefined;
   let sunsetSide: "A" | "F" | undefined;
   const samples: Sample[] = [];
+  let prevSample: Sample | undefined;
 
   // Determine initial sun state at departure
   const initialSun = sunAt(depUTC, origin.lat, origin.lon);

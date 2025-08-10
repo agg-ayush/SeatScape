@@ -2,6 +2,8 @@ import { Airport, Preference, Recommendation, Sample } from "./types";
 import { gcDistanceKm, intermediatePoint, trackAt, wrapTo180 } from "./geo";
 import { addMinutes, localISOToUTCDate } from "./time";
 import { sunAt, isSunEffective } from "./sun";
+import cities from "./cities.json";
+import type { City } from "./cities";
 
 /**
  * Compute seat recommendation for a flight.
@@ -20,6 +22,19 @@ export function computeRecommendation(params: {
     sampleMinutes = 5,
   } = params;
 
+  function nearestCityName(lat: number, lon: number): strihttps://github.com/agg-ayush/SeatScape/pull/12/conflict?name=tests%252Flogic.test.ts&ancestor_oid=5a1bf7c5760c0aba3cb454ffa3feb34704b7069c&base_oid=590fd1fcc71e6a2697c17c04e4a5f3a6a53fc997&head_oid=f20fdd513e072ebef486cb8c360605dda8900fe0ng | undefined {
+    let best: string | undefined;
+    let bestDist = Infinity;
+    for (const c of cities as City[]) {
+      const d = gcDistanceKm({ lat, lon }, { lat: c.lat, lon: c.lon });
+      if (d < bestDist) {
+        bestDist = d;
+        best = c.name;
+      }
+    }
+    return best;
+  }
+
   // Convert departure local time to UTC Date
   const depUTC = localISOToUTCDate(params.departLocalISO, params.origin.tz);
 
@@ -33,10 +48,12 @@ export function computeRecommendation(params: {
   let rightMinutes = 0;
   let peakAltitudeDeg = -90;
   let sunriseUTC: string | undefined;
+  let sunriseSide: "A" | "F" | undefined;
   let sunsetUTC: string | undefined;
   let sunriseSide: "A" | "F" | undefined;
   let sunsetSide: "A" | "F" | undefined;
   const samples: Sample[] = [];
+  let prevSample: Sample | undefined;
 
   let wasEffective = false;
   let currentSide: "A" | "F" | undefined;
@@ -48,11 +65,25 @@ export function computeRecommendation(params: {
     const ts = addMinutes(depUTC, elapsed);
 
     const { azimuthDeg, altitudeDeg } = sunAt(ts, pos.lat, pos.lon);
+    const isEffective = isSunEffective(altitudeDeg);
 
     let side: "A" | "F" | "none" = "none";
-    if (isSunEffective(altitudeDeg)) {
+    if (isEffective) {
       const rel = wrapTo180(azimuthDeg - course);
       side = rel > 0 ? "F" : "A"; // right = F, left = A
+    }
+
+    if (!wasEffective && isEffective) {
+      sunriseUTC = ts.toISOString();
+      sunriseSide = side === "A" || side === "F" ? side : undefined;
+    }
+
+    if (wasEffective && !isEffective) {
+      sunsetUTC = ts.toISOString();
+      sunsetSide = prevSide === "A" || prevSide === "F" ? prevSide : undefined;
+    }
+
+    if (wasEffective && isEffective) {
       if (side === "A") leftMinutes += sampleMinutes;
       if (side === "F") rightMinutes += sampleMinutes;
       if (altitudeDeg > peakAltitudeDeg) peakAltitudeDeg = altitudeDeg;
@@ -71,6 +102,8 @@ export function computeRecommendation(params: {
       }
     }
 
+    if (isEffective && altitudeDeg > peakAltitudeDeg) peakAltitudeDeg = altitudeDeg;
+
     samples.push({
       lat: pos.lat,
       lon: pos.lon,
@@ -80,6 +113,9 @@ export function computeRecommendation(params: {
       course,
       side,
     });
+
+    wasEffective = isEffective;
+    prevSide = side;
   }
 
   // Decide side based on preference

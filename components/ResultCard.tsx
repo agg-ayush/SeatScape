@@ -3,7 +3,6 @@
 
 import { useState } from "react";
 import type { Recommendation, Airport, Preference } from "@/lib/types";
-import { formatLocal } from "@/lib/time";
 import SunSparkline from "@/components/SunSparkline";
 import PlaneSunViz from "@/components/PlaneSunViz";
 
@@ -118,20 +117,13 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
           <SunSparkline samples={rec.samples} />
         </div>
       )}
-      
-      {/* PlaneSunViz */}
-      {rec.samples && rec.samples.length > 0 && (
-        <PlaneSunViz samples={rec.samples} />
-      )}
 
-      {/* PlaneSunViz */}
       {rec.samples && rec.samples.length > 0 && (
-        <PlaneSunViz samples={rec.samples} />
-      )}
-
-      {/* PlaneSunViz */}
-      {rec.samples && rec.samples.length > 0 && (
-        <PlaneSunViz samples={rec.samples} />
+        <PlaneSunViz
+          samples={rec.samples}
+          sunriseIndex={rec.sunriseSampleIndex}
+          sunsetIndex={rec.sunsetSampleIndex}
+        />
       )}
 
       {/* Actions */}

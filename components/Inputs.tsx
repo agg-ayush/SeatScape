@@ -6,6 +6,7 @@ import type { Airport, Preference } from "@/lib/types";
 import IataCombo from "@/components/IataCombo";
 import { ArrowsRightLeftIcon } from "@heroicons/react/24/outline";
 import { convertLocalISO } from "@/lib/time";
+import { DateTime } from "luxon";
 import TimezoneSelect from "@/components/TimezoneSelect";
 import PreferenceToggle from "@/components/PreferenceToggle";
 import DateTime24 from "@/components/DateTime24";
@@ -162,18 +163,28 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
     setTzMode((m) => (m === "origin" ? "dest" : m === "dest" ? "origin" : "custom"));
   }
 
-  function applyPreset(a: string, b: string, h = 7, m = 0) {
+  function applyPreset(
+    a: string,
+    b: string,
+    h = 7,
+    m = 0,
+    durMin?: number
+  ) {
     setFrom(a);
     setTo(b);
     setTzMode("origin");
     setPref("see");
-    const now = new Date();
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
-    const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 16);
-    setDepart(iso);
-    setArrive("");
+    const o = lookup(a);
+    const d = lookup(b);
+    const now = DateTime.now().setZone(o?.tz || "UTC");
+    const departDt = now.set({ hour: h, minute: m, second: 0, millisecond: 0 });
+    setDepart(departDt.toFormat("yyyy-LL-dd'T'HH:mm"));
+    if (o && d && durMin !== undefined) {
+      const arriveDt = departDt.plus({ minutes: durMin }).setZone(d.tz);
+      setArrive(arriveDt.toFormat("yyyy-LL-dd'T'HH:mm"));
+    } else {
+      setArrive("");
+    }
   }
 
   const chipKey = (onActivate: () => void) => (e: React.KeyboardEvent) => {
@@ -332,8 +343,8 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
         </span>
         <button
           type="button"
-          onClick={() => applyPreset("DEL", "DXB", 18, 30)}
-          onKeyDown={chipKey(() => applyPreset("DEL", "DXB", 18, 30))}
+          onClick={() => applyPreset("DEL", "DXB", 18, 30, 210)}
+          onKeyDown={chipKey(() => applyPreset("DEL", "DXB", 18, 30, 210))}
           className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
           role="button"
         >
@@ -341,8 +352,8 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
         </button>
         <button
           type="button"
-          onClick={() => applyPreset("SFO", "JFK", 7, 0)}
-          onKeyDown={chipKey(() => applyPreset("SFO", "JFK", 7, 0))}
+          onClick={() => applyPreset("SFO", "JFK", 7, 0, 330)}
+          onKeyDown={chipKey(() => applyPreset("SFO", "JFK", 7, 0, 330))}
           className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
           role="button"
         >
@@ -350,8 +361,8 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
         </button>
         <button
           type="button"
-          onClick={() => applyPreset("LHR", "CDG", 16, 0)}
-          onKeyDown={chipKey(() => applyPreset("LHR", "CDG", 16, 0))}
+          onClick={() => applyPreset("LHR", "CDG", 16, 0, 75)}
+          onKeyDown={chipKey(() => applyPreset("LHR", "CDG", 16, 0, 75))}
           className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
           role="button"
         >

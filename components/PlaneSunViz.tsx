@@ -38,12 +38,37 @@ export default function PlaneSunViz({
     setLocalIdx(index);
   }, [index]);
 
-  if (!samples || samples.length === 0) return null;
+  // Track the previously rendered sample index so we can
+  // compute time deltas for smooth sun transitions.
+  const prevSampleIdxRef = useRef(0);
 
-  const idx = clamp(localIdx, 0, samples.length - 1);
+  const hasSamples = !!samples && samples.length > 0;
+  const safeLen = hasSamples ? samples.length : 1;
+  const idx = clamp(localIdx, 0, safeLen - 1);
+
+  useEffect(() => {
+    prevSampleIdxRef.current = idx;
+  }, [idx]);
+
+  if (!hasSamples) return null;
+
   const s = samples[idx];
   const rel = sunPlaneRelation(s.az, s.course, s.alt);
   const showSun = s.alt > 0;
+
+  // Animate the sun between samples at a speed proportional to the
+  // elapsed time between the current and previous sample. This keeps the
+  // sun movement in sync with real time, regardless of slider speed.
+  const prevIdx = prevSampleIdxRef.current;
+  const prevUtc = samples[prevIdx]?.utc;
+  const currUtc = s.utc;
+  let transitionSec = 0;
+  if (prevUtc) {
+    const diffSec =
+      (new Date(currUtc).getTime() - new Date(prevUtc).getTime()) / 1000;
+    // Cap the transition so large jumps don't take excessively long.
+    transitionSec = Math.max(0, Math.min(diffSec, 5));
+  }
 
   const angleRad = (rel.relAz * Math.PI) / 180;
   const radius = width * (45 / 224);
@@ -95,6 +120,7 @@ export default function PlaneSunViz({
               height: sunSize,
               left: `calc(50% + ${sunX}px - ${sunSize / 2}px)`,
               top: `calc(50% + ${sunY}px - ${sunSize / 2}px)`,
+              transition: `left ${transitionSec}s linear, top ${transitionSec}s linear`,
             }}
           />
         )}

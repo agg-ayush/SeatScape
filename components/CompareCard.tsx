@@ -54,7 +54,6 @@ type Props = {
 export default function CompareCard({
   rec,
   origin,
-  dest,
   thresholdKm,
   onThresholdChange,
   // progress,

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import "./slider.css";
+import styles from "./slider.module.css";
 
 export interface SliderProps {
   min?: number;
@@ -38,6 +38,7 @@ export default function Slider({
     if (onCommit) onCommit(v);
   };
 
+  const pct = (max - min) ? ((value - min) / (max - min)) * 100 : 0;
   return (
     <input
       ref={ref}
@@ -71,7 +72,8 @@ export default function Slider({
         }
       }}
       aria-label={ariaLabel}
-      className={`ss-range ${className}`}
+      className={`${styles.range} ${className}`}
+      style={{ "--progress": `${pct}%` } as React.CSSProperties}
     />
   );
 }

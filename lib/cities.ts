@@ -4,6 +4,7 @@ import type { Sample } from "@/lib/types";
 export type City = { name: string; lat: number; lon: number; tz?: string };
 
 export type PassBy = {
+  when?: Date;
   name: string;
   lat: number;
   lon: number;

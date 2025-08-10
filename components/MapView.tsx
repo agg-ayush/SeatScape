@@ -19,6 +19,8 @@ type Props = {
   samples: Sample[] | null;
   cities?: PassBy[];
   thresholdKm?: number;
+  /** Origin timezone (IANA). Currently unused by the map, but accepted for prop-compat */
+  originTZ?: string;
 };
 
 const FitBounds = ({ samples }: { samples: Sample[] }) => {

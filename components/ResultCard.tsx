@@ -7,13 +7,14 @@ import { formatLocal } from "@/lib/time";
 import SunSparkline from "@/components/SunSparkline";
 
 type Props = {
+  progress?: number;
   rec: Recommendation | null;
   origin?: Airport;
   dest?: Airport;
   preference: Preference;
 };
 
-export default function ResultCard({ rec, origin, dest, preference }: Props) {
+export default function ResultCard({ rec, origin, dest, preference, progress }: Props) {
   const [copied, setCopied] = useState(false);
   if (!rec) return null;
 
@@ -99,7 +100,8 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
 
       {rec.samples && rec.samples.length > 1 && (
         <div className="text-zinc-700 dark:text-zinc-200">
-          <SunSparkline samples={rec.samples} />
+          {/* Sparkline with cursor sync */}
+          <SunSparkline samples={rec.samples} cursorIndex={typeof progress === "number" ? Math.round(progress * Math.max(0, (rec.samples?.length ?? 1) - 1)) : undefined} />
         </div>
       )}
 

@@ -1,11 +1,10 @@
-
 "use client";
 
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import Inputs, { InputsSnapshot } from "@/components/Inputs";
+import Inputs, { type InputsSnapshot } from "@/components/Inputs";
 import ResultCard from "@/components/ResultCard";
 import ThemeToggle from "@/components/ThemeToggle";
 import CompareCard from "@/components/CompareCard";
@@ -21,7 +20,7 @@ export default function Home() {
   const router = useRouter();
   const search = useSearchParams();
 
-  // Build defaults from the URL (?from=...&to=...&depart=...); otherwise empty
+  // Defaults exactly as Inputs expects
   const defaults = useMemo(() => {
     const from = (search.get("from") || "").toUpperCase();
     const to = (search.get("to") || "").toUpperCase();
@@ -36,16 +35,14 @@ export default function Home() {
   const [dest, setDest] = useState<Airport | undefined>(undefined);
   const [pref, setPref] = useState<Preference>("see");
 
-  // Comparison controls
+  // Controls
   const [thresholdKm, setThresholdKm] = useState<number>(75);
   const [progress, setProgress] = useState<number>(0);
 
   const cityPassBys: PassBy[] = useMemo(() => {
     if (!rec?.samples?.length) return [];
     try {
-      return detectCityPassBysFromSamples(rec.samples as any, cities as any, {
-        thresholdKm,
-      });
+      return detectCityPassBysFromSamples(rec.samples, cities as any, { thresholdKm });
     } catch {
       return [];
     }
@@ -62,7 +59,6 @@ export default function Home() {
   async function handleSubmit(s: InputsSnapshot) {
     setLoading(true);
     setPref(s.preference);
-    await new Promise((r) => setTimeout(r, 120));
 
     const r = computeRecommendation({
       origin: s.origin,
@@ -93,18 +89,24 @@ export default function Home() {
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="flex items-start justify-between">
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight">
-              SeatScape
-            </h1>
+            <h1 className="text-4xl font-extrabold tracking-tight">SeatScape</h1>
             <p className="mt-1 text-zinc-600 dark:text-zinc-300">
-              Pick the perfect window seat (A=left / F=right) using the sun’s
-              path and scenic views.
+              Pick the perfect window seat (A=left / F=right) using the sun's path and scenic views.
             </p>
           </div>
           <ThemeToggle />
         </header>
 
-        <Inputs defaults={defaults} loading={loading} onSubmit={handleSubmit} onClearAll={clearAll} />
+        <div className="space-y-4">
+          <Inputs defaults={defaults} loading={loading} onSubmit={handleSubmit} />
+          <button
+            type="button"
+            onClick={clearAll}
+            className="rounded-lg px-3 py-2 border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+          >
+            Clear All
+          </button>
+        </div>
 
         {rec && (
           <CompareCard
@@ -121,11 +123,10 @@ export default function Home() {
 
         <ResultCard rec={rec} origin={origin} dest={dest} preference={pref} />
 
-        <MapView samples={rec?.samples ?? null} cities={cityPassBys} thresholdKm={thresholdKm} originTZ={origin?.tz} />
+        <MapView samples={rec?.samples ?? null} cities={cityPassBys} thresholdKm={thresholdKm} />
 
         <footer className="text-xs text-zinc-500 dark:text-zinc-400 pt-2">
-          Assumes great-circle routing and fair weather. Window seats: A (left),
-          F (right) in typical 3–3 configs.
+          Assumes great-circle routing and fair weather. Window seats: A (left), F (right) in typical 3-3 configs.
         </footer>
       </div>
     </main>

@@ -1,236 +1,89 @@
 "use client";
+import React, { useMemo } from "react";
 
-import type { Sample } from "@/lib/types";
-import { useMemo } from "react";
+type Sample = {
+  utc?: string;
+  date?: Date;
+  glare01?: number;
+  alt?: number;
+  az?: number;
+  course?: number;
+};
 
-type Props = { samples: Sample[]; height?: number };
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+const wrapTo180 = (x: number) => ((((x + 180) % 360) + 360) % 360) - 180;
 
-export default function SunSparkline({ samples, height = 100 }: Props) {
-  // Reserve space on top for the legend so the path never overlaps it
-  const LEGEND_SPACE = 34;
-  const width = 560;
-  const paddingX = 12;
-  const paddingBottom = 10;
-  const paddingTop = 10 + LEGEND_SPACE; // ← extra top room
+function relativeAzDeg(s: Sample): number | undefined {
+  if (typeof s.az === "number" && typeof s.course === "number") {
+    return wrapTo180(s.az - s.course);
+  }
+  return undefined;
+}
 
-  const model = useMemo(() => {
-    if (!samples.length) return null;
+function glareFromSample(s: Sample): number {
+  if (typeof s.glare01 === "number") return clamp01(s.glare01);
+  const r = relativeAzDeg(s);
+  if (typeof r !== "number") return 0;
+  const off = Math.abs(Math.abs(r) - 90); // 0 at ±90°
+  const rel = clamp01(1 - off / 90);
+  const altFactor =
+    typeof s.alt === "number" ? clamp01(1 - Math.abs(s.alt) / 50) : 1;
+  return clamp01(rel * altFactor);
+}
 
-    const xs = samples.map((_, i) => i);
-    const ys = samples.map((s) => s.alt);
+export interface SunSparklineProps {
+  samples: Sample[];
+  width?: number;
+  height?: number;
+  progress?: number; // 0..1
+}
 
-    const xMin = 0;
-    const xMax = Math.max(1, samples.length - 1);
-    // pad y-range a bit to avoid clipping at edges
-    const yMin = Math.min(-10, Math.min(...ys)) - 1;
-    const yMax = Math.max(50, Math.max(...ys)) + 1;
+export default function SunSparkline({
+  samples,
+  width = 320,
+  height = 30,
+  progress = 0,
+}: SunSparklineProps) {
+  const values = useMemo(() => samples.map(glareFromSample), [samples]);
 
-    const innerW = width - paddingX * 2;
-    const innerH = height - paddingTop - paddingBottom;
+  const path = useMemo(() => {
+    if (!values.length) return "";
+    const pad = 2;
+    const w = width - pad * 2;
+    const h = height - pad * 2;
+    const pts = values.map((v, i) => {
+      const x = pad + (i / (values.length - 1)) * w;
+      const y = pad + (1 - v) * h;
+      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    return pts.join(" ");
+  }, [values, width, height]);
 
-    const xScale = (i: number) =>
-      paddingX + ((i - xMin) / (xMax - xMin)) * innerW;
-
-    // y grows downward → invert for altitude
-    const yScale = (v: number) =>
-      paddingTop + (1 - (v - yMin) / Math.max(1e-6, yMax - yMin)) * innerH;
-
-    // Build polyline points
-    const pts = xs.map((i, idx) => ({
-      x: xScale(i),
-      y: yScale(ys[idx]),
-    }));
-
-    // Horizon baseline y
-    const yZero = yScale(0);
-
-    // Indices for first/last sun (alt >= 5°)
-    const firstIdx = samples.findIndex((s) => s.alt >= 5);
-    const lastFromEnd = [...samples].reverse().findIndex((s) => s.alt >= 5);
-    const lastIdx = lastFromEnd >= 0 ? samples.length - 1 - lastFromEnd : -1;
-
-    // Build two paths:
-    //  A) full path muted
-    //  B) sun-visible segment (from firstIdx to lastIdx) highlighted
-    const toPath = (arr: { x: number; y: number }[]) =>
-      arr.map((p, i) => (i ? `L ${p.x},${p.y}` : `M ${p.x},${p.y}`)).join(" ");
-
-    const fullPath = toPath(pts);
-
-    let sunPath = "";
-    if (firstIdx >= 0 && lastIdx >= 0 && lastIdx >= firstIdx) {
-      sunPath = toPath(pts.slice(firstIdx, lastIdx + 1));
-    }
-
-    return {
-      width,
-      height,
-      pts,
-      yZero,
-      xScale,
-      yScale,
-      firstIdx,
-      lastIdx,
-      fullPath,
-      sunPath,
-    };
-  }, [samples, height]);
-
-  if (!model) return null;
-
-  const {
-    width: W,
-    height: H,
-    yZero,
-    pts,
-    firstIdx,
-    lastIdx,
-    fullPath,
-    sunPath,
-  } = model;
+  const cx = 2 + progress * (width - 4);
 
   return (
     <svg
-      viewBox={`0 0 ${W} ${H}`}
-      width="100%"
-      height={H}
-      role="img"
-      aria-label="Sun altitude over flight time"
-      className="mt-3"
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className="block"
     >
-      <defs>
-        <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fbbf24" stopOpacity="0.95" />
-          <stop offset="1" stopColor="#fbbf24" stopOpacity="0.25" />
-        </linearGradient>
-      </defs>
-
-      {/* Below-horizon tint & baseline */}
       <rect
-        x={0}
-        y={yZero}
-        width={W}
-        height={H - yZero}
-        fill="currentColor"
-        opacity="0.06"
+        x="0"
+        y="0"
+        width={width}
+        height={height}
+        rx="6"
+        className="fill-zinc-800/60"
       />
-      <line
-        x1={0}
-        y1={yZero}
-        x2={W}
-        y2={yZero}
-        stroke="currentColor"
-        opacity="0.35"
-      />
-
-      {/* Full path (muted) */}
       <path
-        d={fullPath}
+        d={path}
+        className="stroke-yellow-400"
+        strokeOpacity="0.8"
+        strokeWidth="2"
         fill="none"
-        stroke="currentColor"
-        opacity="0.35"
-        strokeWidth={3}
       />
-
-      {/* Sun-visible segment (highlighted) */}
-      {sunPath && (
-        <path d={sunPath} fill="none" stroke="url(#spark)" strokeWidth={3} />
-      )}
-
-      {/* Markers */}
-      {firstIdx >= 0 && (
-        <circle
-          cx={pts[firstIdx].x}
-          cy={pts[firstIdx].y}
-          r="5"
-          fill="#22c55e"
-          stroke="#fff"
-          strokeWidth="1.5"
-        />
-      )}
-      {lastIdx >= 0 && lastIdx !== firstIdx && (
-        <circle
-          cx={pts[lastIdx].x}
-          cy={pts[lastIdx].y}
-          r="5"
-          fill="#ef4444"
-          stroke="#fff"
-          strokeWidth="1.5"
-        />
-      )}
-
-      {/* Legend pill in the reserved top space (tighter width) */}
-      <g transform="translate(10,8)">
-        {/* light bg */}
-        <rect
-          width="150"
-          height="26"
-          rx="8"
-          ry="8"
-          fill="rgba(255,255,255,0.9)"
-          className="dark:hidden"
-        />
-        {/* dark bg */}
-        <rect
-          width="150"
-          height="26"
-          rx="8"
-          ry="8"
-          fill="rgba(24,24,27,0.85)"
-          className="hidden dark:block"
-        />
-
-        {/* first sun */}
-        <circle cx="12" cy="13" r="4" fill="#22c55e" />
-        <text
-          x="20"
-          y="17"
-          fontSize="12"
-          className="dark:hidden"
-          fill="#e5e7eb00"
-        >
-          .
-        </text>
-        <text
-          x="20"
-          y="17"
-          fontSize="12"
-          fill="#374151"
-          className="dark:hidden"
-        >
-          first sun
-        </text>
-        <text
-          x="20"
-          y="17"
-          fontSize="12"
-          fill="#e5e7eb"
-          className="hidden dark:block"
-        >
-          first sun
-        </text>
-
-        {/* last sun (shifted left to reduce empty right space) */}
-        <circle cx="88" cy="13" r="4" fill="#ef4444" />
-        <text
-          x="96"
-          y="17"
-          fontSize="12"
-          fill="#374151"
-          className="dark:hidden"
-        >
-          last sun
-        </text>
-        <text
-          x="96"
-          y="17"
-          fontSize="12"
-          fill="#e5e7eb"
-          className="hidden dark:block"
-        >
-          last sun
-        </text>
-      </g>
+      <circle cx={cx} cy={height / 2} r="3" className="fill-white" />
     </svg>
   );
 }

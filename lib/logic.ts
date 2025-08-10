@@ -1,5 +1,5 @@
 import { Airport, Preference, Recommendation, Sample } from "./types";
-import { gcDistanceKm, intermediatePoint, trackAt, wrapTo180 } from "./geo";
+import { gcDistanceKm, intermediatePoint, trackAt,  } from "./geo";
 import { addMinutes, localISOToUTCDate } from "./time";
 import { sunAt, isSunEffective } from "./sun";
 
@@ -49,7 +49,7 @@ export function computeRecommendation(params: {
 
     let side: "A" | "F" | "none" = "none";
     if (isSunEffective(altitudeDeg)) {
-      const rel = wrapTo180(azimuthDeg - course);
+      const rel = (azimuthDeg - course);
       side = rel > 0 ? "F" : "A"; // right = F, left = A
       if (side === "A") leftMinutes += sampleMinutes;
       if (side === "F") rightMinutes += sampleMinutes;
@@ -103,4 +103,28 @@ export function computeRecommendation(params: {
     confidence: Math.round(confidence * 100) / 100,
     samples,
   };
+}
+
+// ---- Extended sun/relative helpers (non-breaking) ----
+export const ALTITUDE_THRESHOLD_DEG = 5;
+export const DEAD_BAND_DEG = 10;
+export type ExtendedSample = Sample & {
+  relativeAzDeg: number;
+  glare01: number;
+  effective?: boolean;
+};
+function wrapTo180(x: number): number {
+  let a = ((x + 180) % 360 + 360) % 360 - 180;
+  if (a == -180) a = 180;
+  return a;
+}
+function deg2rad(d: number) { return (d * Math.PI) / 180; }
+export function extendSamples(samples: Sample[]): ExtendedSample[] {
+  return samples.map((s) => {
+    const relativeAzDeg = ((s.az ?? 0) - (s.course ?? 0));
+    const above = (s.alt ?? 0) >= ALTITUDE_THRESHOLD_DEG;
+    const glare01 = above ? Math.max(0, Math.cos(Math.abs(deg2rad(relativeAzDeg)))) : 0;
+    const effective = above && Math.abs(relativeAzDeg) > DEAD_BAND_DEG;
+    return { ...s, relativeAzDeg, glare01, effective } as ExtendedSample;
+  });
 }

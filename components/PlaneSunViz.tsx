@@ -31,6 +31,7 @@ export default function PlaneSunViz({ samples, index, onIndexChange }: Props) {
   const idx = Math.min(index, samples.length - 1);
   const s = samples[idx];
   const rel = sunPlaneRelation(s.az, s.course, s.alt);
+  const showSun = s.alt > 0;
 
   const angleRad = (rel.relAz * Math.PI) / 180;
   const radius = width * (45 / 224);
@@ -41,8 +42,8 @@ export default function PlaneSunViz({ samples, index, onIndexChange }: Props) {
   const planeSize = width * (80 / 224);
   const sunSize = width * (24 / 224);
 
-  const leftOpacity = rel.side === "A" ? rel.intensity : 0;
-  const rightOpacity = rel.side === "F" ? rel.intensity : 0;
+  const leftOpacity = showSun && rel.side === "A" ? rel.intensity : 0;
+  const rightOpacity = showSun && rel.side === "F" ? rel.intensity : 0;
 
 
   return (
@@ -74,15 +75,17 @@ export default function PlaneSunViz({ samples, index, onIndexChange }: Props) {
         </svg>
 
         {/* sun position */}
-        <div
-          className="absolute rounded-full bg-yellow-400 border border-yellow-500 shadow"
-          style={{
-            width: sunSize,
-            height: sunSize,
-            left: `calc(50% + ${sunX}px - ${sunSize / 2}px)`,
-            top: `calc(50% + ${sunY}px - ${sunSize / 2}px)`,
-          }}
-        />
+        {showSun && (
+          <div
+            className="absolute rounded-full bg-yellow-400 border border-yellow-500 shadow"
+            style={{
+              width: sunSize,
+              height: sunSize,
+              left: `calc(50% + ${sunX}px - ${sunSize / 2}px)`,
+              top: `calc(50% + ${sunY}px - ${sunSize / 2}px)`,
+            }}
+          />
+        )}
       </div>
       {samples.length > 1 && (
         <div className="relative mt-2">

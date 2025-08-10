@@ -5,7 +5,8 @@ import airportsData from "@/lib/airports.json";
 import type { Airport, Preference } from "@/lib/types";
 import IataCombo from "@/components/IataCombo";
 import { ArrowsRightLeftIcon } from "@heroicons/react/24/outline";
-import { convertLocalISO } from "@/lib/time";
+import { addMinutes, convertLocalISO, formatLocal, localISOToUTCDate } from "@/lib/time";
+import { estimateDurationMinutes } from "@/lib/logic";
 import TimezoneSelect from "@/components/TimezoneSelect";
 import PreferenceToggle from "@/components/PreferenceToggle";
 import DateTime24 from "@/components/DateTime24";
@@ -17,9 +18,10 @@ export type InputsSnapshot = {
   preference: Preference;
   from: string;
   to: string;
+  arriveLocalISO?: string;
 };
 
-type Defaults = { from?: string; to?: string; depart?: string };
+type Defaults = { from?: string; to?: string; depart?: string; arrive?: string };
 type Props = {
   onSubmit: (data: InputsSnapshot) => void;
   defaults?: Defaults;
@@ -27,12 +29,13 @@ type Props = {
   onClearAll?: () => void;
 };
 type TZMode = "origin" | "dest" | "custom";
-type Recent = { from: string; to: string; depart: string };
+type Recent = { from: string; to: string; depart: string; arrive?: string };
 
 export default function Inputs({ onSubmit, defaults, loading = false, onClearAll }: Props) {
   const [from, setFrom] = useState(defaults?.from ?? "");
   const [to, setTo] = useState(defaults?.to ?? "");
   const [depart, setDepart] = useState(defaults?.depart ?? "");
+  const [arrive, setArrive] = useState(defaults?.arrive ?? "");
   const [tzMode, setTzMode] = useState<TZMode>("origin");
   const [customTZ, setCustomTZ] = useState<string | null>(null);
   const [pref, setPref] = useState<Preference>("see");
@@ -93,13 +96,27 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
       d = destAirport;
     if (!o) return setError("Enter a valid From IATA (e.g., DEL, JFK).");
     if (!d) return setError("Enter a valid To IATA (e.g., DXB, LHR).");
-    if (!depart) return setError("Choose a departure date & time.");
+    if (!depart && !arrive)
+      return setError("Choose a departure or arrival date & time.");
 
     let departLocalAtOrigin = depart;
-    if (tzMode === "dest")
-      departLocalAtOrigin = convertLocalISO(depart, d.tz, o.tz);
-    else if (tzMode === "custom" && customTZ)
-      departLocalAtOrigin = convertLocalISO(depart, customTZ, o.tz);
+    if (arrive) {
+      const arrUTC = localISOToUTCDate(arrive, d.tz);
+      const depUTC = addMinutes(
+        arrUTC,
+        -estimateDurationMinutes(o, d)
+      );
+      departLocalAtOrigin = formatLocal(
+        depUTC,
+        o.tz,
+        "yyyy-LL-dd'T'HH:mm"
+      );
+    } else {
+      if (tzMode === "dest")
+        departLocalAtOrigin = convertLocalISO(depart, d.tz, o.tz);
+      else if (tzMode === "custom" && customTZ)
+        departLocalAtOrigin = convertLocalISO(depart, customTZ, o.tz);
+    }
 
     onSubmit({
       origin: o,
@@ -108,14 +125,16 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
       preference: pref,
       from,
       to,
+      arriveLocalISO: arrive || undefined,
     });
-    pushRecent({ from, to, depart });
+    pushRecent({ from, to, depart, arrive });
   }
 
   function clearAll() {
     setFrom("");
     setTo("");
     setDepart("");
+    setArrive("");
     setError(null);
     try { localStorage.removeItem("ss_recent"); } catch {}
     setRecent([]);
@@ -140,6 +159,7 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
       .toISOString()
       .slice(0, 16);
     setDepart(iso);
+    setArrive("");
   }
 
   const chipKey = (onActivate: () => void) => (e: React.KeyboardEvent) => {
@@ -182,7 +202,7 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
         />
       </div>
 
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-4 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">
             Departure{" "}
@@ -191,6 +211,16 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
             </span>
           </label>
           <DateTime24 value={depart} onChange={(v) => setDepart(v)} />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Arrival{" "}
+            <span className="text-zinc-500 dark:text-zinc-400">
+              ({destAirport?.tz ?? "—"})
+            </span>
+          </label>
+          <DateTime24 value={arrive} onChange={(v) => setArrive(v)} />
         </div>
 
         <div>
@@ -284,11 +314,13 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
                   setFrom(r.from);
                   setTo(r.to);
                   setDepart(r.depart);
+                  setArrive(r.arrive ?? "");
                 }}
                 onKeyDown={chipKey(() => {
                   setFrom(r.from);
                   setTo(r.to);
                   setDepart(r.depart);
+                  setArrive(r.arrive ?? "");
                 })}
                 className="px-3 py-1.5 text-sm rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
                 role="button"

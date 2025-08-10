@@ -5,6 +5,13 @@ import { sunAt, isSunEffective } from "./sun";
 import cities from "./cities.json";
 import type { City } from "./cities";
 
+/** Estimate flight duration in whole minutes based on great-circle distance. */
+export function estimateDurationMinutes(origin: Airport, dest: Airport): number {
+  const distanceKm = gcDistanceKm(origin, dest);
+  const durationHrs = Math.max(0.67, Math.min(18, distanceKm / 850)); // min 40min, max 18h
+  return Math.round(durationHrs * 60);
+}
+
 /**
  * Compute seat recommendation for a flight.
  */
@@ -34,9 +41,7 @@ export function computeRecommendation(params: {
   const depUTC = localISOToUTCDate(params.departLocalISO, params.origin.tz);
 
   // Distance and duration
-  const distanceKm = gcDistanceKm(origin, dest);
-  const durationHrs = Math.max(0.67, Math.min(18, distanceKm / 850)); // min 40min, max 18h
-  const totalMinutes = Math.round(durationHrs * 60);
+  const totalMinutes = estimateDurationMinutes(origin, dest);
 
   // Sampling
   let leftMinutes = 0;

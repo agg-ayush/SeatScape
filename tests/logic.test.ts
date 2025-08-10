@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { computeRecommendation } from "../lib/logic";
+import { computeRecommendation, estimateDurationMinutes } from "../lib/logic";
 import type { Airport } from "../lib/types";
 
 const DEL: Airport = {
@@ -45,6 +45,12 @@ test("DEL to DXB evening — should produce a side and not crash", () => {
   expect(rec.leftMinutes).toBeTypeOf("number");
   expect(rec.rightMinutes).toBeTypeOf("number");
   expect(rec.samples.length).toBeGreaterThan(0);
+});
+
+test("flight duration estimation", () => {
+  const mins = estimateDurationMinutes(DEL, DXB);
+  expect(mins).toBeGreaterThan(100);
+  expect(mins).toBeLessThan(200);
 });
 
 test("sunrise side determination", () => {

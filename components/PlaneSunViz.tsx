@@ -22,6 +22,7 @@ export default function PlaneSunViz({
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [localIdx, setLocalIdx] = useState(index);
+  const prevIdxRef = useRef(index);
 
   useEffect(() => {
     const update = () => {
@@ -36,6 +37,7 @@ export default function PlaneSunViz({
 
   useEffect(() => {
     setLocalIdx(index);
+    prevIdxRef.current = index;
   }, [index]);
 
   const hasSamples = !!samples && samples.length > 0;

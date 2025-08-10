@@ -40,14 +40,16 @@ export default function PlaneSunViz({
     prevIdxRef.current = index;
   }, [index]);
 
-  const prevIdxRef = useRef(0);
+  // Track the previously rendered sample index so we can
+  // compute time deltas for smooth sun transitions.
+  const prevSampleIdxRef = useRef(0);
 
   const hasSamples = !!samples && samples.length > 0;
   const safeLen = hasSamples ? samples.length : 1;
   const idx = clamp(localIdx, 0, safeLen - 1);
 
   useEffect(() => {
-    prevIdxRef.current = idx;
+    prevSampleIdxRef.current = idx;
   }, [idx]);
 
   if (!hasSamples) return null;
@@ -59,7 +61,7 @@ export default function PlaneSunViz({
   // Animate the sun between samples at a speed proportional to the
   // elapsed time between the current and previous sample. This keeps the
   // sun movement in sync with real time, regardless of slider speed.
-  const prevIdx = prevIdxRef.current;
+  const prevIdx = prevSampleIdxRef.current;
   const prevUtc = samples[prevIdx]?.utc;
   const currUtc = s.utc;
   let transitionSec = 0;

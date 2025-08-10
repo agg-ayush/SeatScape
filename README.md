@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SeatScape
+
+SeatScape helps air travellers choose the perfect window seat. Given the origin, destination and departure time, the app simulates the sun's path along the great-circle route and recommends which side of the plane (\*A\*=left / \*F\* = right) offers better views or less sun glare. It also highlights expected sunrise and sunset, nearby cities en route and visualises the journey on an interactive map.
 
 ## Getting Started
 
-First, run the development server:
+### Install dependencies
+
+```bash
+npm install
+```
+
+### Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit <http://localhost:3000> to use the app. Edit files in `app/` or `components/` and the page will automatically update.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Lint and tests
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Run lint checks and the test suite:
 
-## Learn More
+```bash
+npm run lint
+npx vitest run
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Build for production
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build
+npm start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Notes
 
-## Deploy on Vercel
+SeatScape assumes great‑circle routing and clear weather. Window seats correspond to A (left) and F (right) in standard 3–3 seating configurations.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

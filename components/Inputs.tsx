@@ -120,6 +120,12 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
     if (!depart) return setError("Choose a departure date & time.");
     if (!arrive) return setError("Arrival time unavailable.");
 
+    const zone = zoneForMode(tzMode);
+    const departDt = DateTime.fromISO(depart, { zone });
+    const arriveDt = DateTime.fromISO(arrive, { zone });
+    if (arriveDt < departDt)
+      return setError("Arrival time must be after departure time.");
+
     let departLocalAtOrigin = depart;
     let arriveLocalAtDest = arrive;
     if (tzMode === "dest") {

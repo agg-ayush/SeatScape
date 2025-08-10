@@ -73,12 +73,18 @@ export function computeRecommendation(params: {
     }
 
     if (!wasEffective && effective) {
-      sunriseUTC = ts.toISOString();
       sunriseSide = side === "A" || side === "F" ? side : undefined;
-      sunriseSampleIndex = idx;
       const city = nearestCity(pos.lat, pos.lon);
       sunriseCity = city?.name;
       sunriseTz = city?.tz;
+      if (idx === 0) {
+        // Sun already above horizon at departure – record synthetic time before takeoff
+        sunriseUTC = addMinutes(ts, -sampleMinutes).toISOString();
+        sunriseSampleIndex = undefined;
+      } else {
+        sunriseUTC = ts.toISOString();
+        sunriseSampleIndex = idx;
+      }
     }
 
     if (wasEffective && !effective) {

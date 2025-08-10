@@ -78,6 +78,7 @@ export default function Home() {
     setRec(r);
     setOrigin(s.origin);
     setDest(s.dest);
+    setSampleIndex(0);
     updateUrl(s);
     setLoading(false);
   }

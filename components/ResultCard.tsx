@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { Recommendation, Airport, Preference } from "@/lib/types";
 import { formatLocal } from "@/lib/time";
 import SunSparkline from "@/components/SunSparkline";
+import PlaneSunViz from "@/components/PlaneSunViz";
 
 type Props = {
   rec: Recommendation | null;
@@ -102,7 +103,13 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
           <SunSparkline samples={rec.samples} />
         </div>
       )}
+      
+      {/* PlaneSunViz */}
+      {rec.samples && rec.samples.length > 0 && (
+        <PlaneSunViz samples={rec.samples} />
+      )}
 
+      {/* Actions */}
       <div className="mt-3 flex items-center gap-3 flex-wrap">
         <button
           onClick={copy}

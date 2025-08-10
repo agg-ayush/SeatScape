@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Recommendation, Airport, Preference } from "@/lib/types";
 import { formatLocal } from "@/lib/time";
 import SunSparkline from "@/components/SunSparkline";
+import PlaneSunViz from "@/components/PlaneSunViz";
 
 type Props = {
   rec: Recommendation | null;
@@ -33,8 +34,8 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
 
   const rationale =
     preference === "avoid"
-      ? `minimizes direct sun (~${100 - sunPct}%)`
-      : `sun on that side for ~${sunPct}% of the flight`;
+      ? `keeps direct sun away for about ${100 - sunPct}% of the flight`
+      : `sun graces that side for roughly ${sunPct}% of the flight`;
 
   // Normalize whatever we got ("A", "F", "A (left)", "F (right)", etc.)
   const sideRaw = String(rec.side ?? "").trim();
@@ -66,7 +67,7 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
     } catch {
-      window.prompt("Copy result:", textToCopy);
+      window.prompt("Copy recommendation:", textToCopy);
     }
   }
 
@@ -74,15 +75,14 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
     <div className="relative p-5 bg-white dark:bg-zinc-800 rounded-2xl shadow border border-zinc-200 dark:border-zinc-700">
       <div className="mb-2">
         <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200">
-          Recommendation
+          Seat recommendation
         </span>
       </div>
 
       {/* Headline */}
       <h2 className="text-2xl font-extrabold tracking-tight">{headline}</h2>
       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-        Peak sun altitude ~{rec.peakAltitudeDeg}° above horizon. Confidence{" "}
-        {Math.round(rec.confidence * 100)}%.
+        Peak sun altitude around {rec.peakAltitudeDeg}° above the horizon. Confidence {Math.round(rec.confidence * 100)}%.
       </p>
 
       {/* Info pills */}
@@ -112,15 +112,20 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
         </div>
       )}
 
+      {/* PlaneSunViz */}
+      {rec.samples && rec.samples.length > 0 && (
+        <PlaneSunViz samples={rec.samples} />
+      )}
+
       {/* Actions */}
       <div className="mt-3 flex items-center gap-3 flex-wrap">
         <button
           onClick={copy}
           className="text-sm underline"
           aria-live="polite"
-          aria-label="Copy result"
+          aria-label="Copy recommendation"
         >
-          {copied ? "Copied!" : "Copy result"}
+          {copied ? "Copied!" : "Copy recommendation"}
         </button>
         <span
           className={`text-xs rounded-full px-2 py-1 transition-opacity duration-200 ${

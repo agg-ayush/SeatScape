@@ -3834,5 +3834,19 @@
     "lat": 46.161388,
     "lon": -60.047779,
     "tz": "America/Glace_Bay"
+  },
+  {
+    "iata": "VKO",
+    "name": "Vnukovo International Airport",
+    "lat": 55.5915,
+    "lon": 37.2615,
+    "tz": "Europe/Moscow"
+  },
+  {
+    "iata": "KBP",
+    "name": "Boryspil International Airport",
+    "lat": 50.345,
+    "lon": 30.8947,
+    "tz": "Europe/Kyiv"
   }
 ]

@@ -70,6 +70,7 @@ export default function Home() {
       origin: s.origin,
       dest: s.dest,
       departLocalISO: s.departLocalISO,
+      arriveLocalISO: s.arriveLocalISO,
       preference: s.preference,
       sampleMinutes: 5,
     });

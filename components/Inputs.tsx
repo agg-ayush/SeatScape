@@ -41,6 +41,7 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
   const [to, setTo] = useState(defaults?.to ?? "");
   const [depart, setDepart] = useState(defaults?.depart ?? "");
   const [arrive, setArrive] = useState(defaults?.arrive ?? "");
+  const [arriveEdited, setArriveEdited] = useState(!!defaults?.arrive);
   const [tzMode, setTzMode] = useState<TZMode>("origin");
   const [customTZ, setCustomTZ] = useState<string | null>(null);
   const [pref, setPref] = useState<Preference>("see");
@@ -96,6 +97,7 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
 
   // Auto-compute arrival whenever inputs change
   useEffect(() => {
+    if (arriveEdited) return;
     if (!depart || !originAirport || !destAirport) {
       setArrive("");
       return;
@@ -117,7 +119,7 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
       "yyyy-LL-dd'T'HH:mm"
     );
     setArrive(arrLocal);
-  }, [depart, originAirport, destAirport, tzMode, customTZ]);
+  }, [depart, originAirport, destAirport, tzMode, customTZ, arriveEdited]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -152,6 +154,7 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
     setTo("");
     setDepart("");
     setArrive("");
+    setArriveEdited(false);
     setError(null);
     try { localStorage.removeItem("ss_recent"); } catch {}
     setRecent([]);
@@ -163,6 +166,7 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
     setFrom(to);
     setTo(old);
     setTzMode((m) => (m === "origin" ? "dest" : m === "dest" ? "origin" : "custom"));
+    setArriveEdited(false);
   }
 
   function applyPreset(a: string, b: string, h = 7, m = 0) {
@@ -177,6 +181,7 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
       .slice(0, 16);
     setDepart(iso);
     setArrive("");
+    setArriveEdited(false);
   }
 
   const chipKey = (onActivate: () => void) => (e: React.KeyboardEvent) => {
@@ -193,14 +198,17 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
       className="grid gap-4 p-5 bg-white dark:bg-zinc-800 rounded-2xl shadow border border-zinc-200 dark:border-zinc-700"
     >
       <div className="grid gap-3 items-end md:grid-cols-[1fr_auto_1fr]">
-        <IataCombo
-          label="From (IATA)"
-          placeholder="e.g., JFK"
-          value={from}
-          onChange={(v) => setFrom(v ? v.toUpperCase() : "")}
-          airports={airports}
-          inputRef={fromRef}
-        />
+          <IataCombo
+            label="From (IATA)"
+            placeholder="e.g., JFK"
+            value={from}
+            onChange={(v) => {
+              setFrom(v ? v.toUpperCase() : "");
+              setArriveEdited(false);
+            }}
+            airports={airports}
+            inputRef={fromRef}
+          />
         <button
           type="button"
           onClick={swap}
@@ -210,13 +218,16 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
         >
           <ArrowsRightLeftIcon className="h-5 w-5" />
         </button>
-        <IataCombo
-          label="To (IATA)"
-          placeholder="e.g., LHR"
-          value={to}
-          onChange={(v) => setTo(v ? v.toUpperCase() : "")}
-          airports={airports}
-        />
+          <IataCombo
+            label="To (IATA)"
+            placeholder="e.g., LHR"
+            value={to}
+            onChange={(v) => {
+              setTo(v ? v.toUpperCase() : "");
+              setArriveEdited(false);
+            }}
+            airports={airports}
+          />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -228,7 +239,13 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
                 ({tzLabel})
               </span>
             </label>
-            <DateTime24 value={depart} onChange={(v) => setDepart(v)} />
+            <DateTime24
+              value={depart}
+              onChange={(v) => {
+                setDepart(v);
+                setArriveEdited(false);
+              }}
+            />
           </div>
 
           <div>
@@ -238,7 +255,13 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
                 ({destAirport?.tz ?? "—"})
               </span>
             </label>
-            <DateTime24 value={arrive} onChange={(v) => setArrive(v)} />
+            <DateTime24
+              value={arrive}
+              onChange={(v) => {
+                setArrive(v);
+                setArriveEdited(true);
+              }}
+            />
           </div>
         </div>
 

@@ -88,3 +88,15 @@ test("sunset side determination", () => {
   });
   expect(south.sunsetSide).toBe("A");
 });
+
+test("custom arrival overrides duration", () => {
+  const rec = computeRecommendation({
+    origin: DEL,
+    dest: DXB,
+    departLocalISO: "2025-08-10T18:30",
+    arriveLocalISO: "2025-08-10T19:00",
+    preference: "see",
+    sampleMinutes: 5,
+  });
+  expect(rec.samples.length).toBe(25);
+});

@@ -147,6 +147,21 @@ export default function CompareCard({
         </div>
       </div>
 
+      {((!rec.sunriseSide && rec.sunriseUTC) || (!rec.sunsetSide && rec.sunsetUTC)) && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {!rec.sunriseSide && rec.sunriseUTC && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 px-3 py-1 text-xs">
+              🌅 Sunrise visible both sides
+            </span>
+          )}
+          {!rec.sunsetSide && rec.sunsetUTC && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-200 px-3 py-1 text-xs">
+              🌇 Sunset visible both sides
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="rounded-xl p-4 bg-gradient-to-br from-zinc-50 to-white dark:from-zinc-900 dark:to-zinc-800 border border-zinc-200 dark:border-zinc-700">
           <h3 className="text-lg font-bold mb-2">A (left)</h3>

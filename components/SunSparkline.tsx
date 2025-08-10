@@ -2,10 +2,11 @@
 
 import type { Sample } from "@/lib/types";
 import { useMemo } from "react";
+import { formatLocal } from "@/lib/time";
 
-type Props = { samples: Sample[]; height?: number };
+type Props = { samples: Sample[]; height?: number; tz?: string };
 
-export default function SunSparkline({ samples, height = 100 }: Props) {
+export default function SunSparkline({ samples, height = 80, tz }: Props) {
   // Reserve space on top for the legend so the path never overlaps it
   const LEGEND_SPACE = 34;
   const width = 560;
@@ -90,6 +91,7 @@ export default function SunSparkline({ samples, height = 100 }: Props) {
   } = model;
 
   return (
+    <>
     <svg
       viewBox={`0 0 ${W} ${H}`}
       width="100%"
@@ -129,12 +131,12 @@ export default function SunSparkline({ samples, height = 100 }: Props) {
         fill="none"
         stroke="currentColor"
         opacity="0.35"
-        strokeWidth={3}
+        strokeWidth={2}
       />
 
       {/* Sun-visible segment (highlighted) */}
       {sunPath && (
-        <path d={sunPath} fill="none" stroke="url(#spark)" strokeWidth={3} />
+        <path d={sunPath} fill="none" stroke="url(#spark)" strokeWidth={2} />
       )}
 
       {/* Markers */}
@@ -232,5 +234,14 @@ export default function SunSparkline({ samples, height = 100 }: Props) {
         </text>
       </g>
     </svg>
+    <div className="mt-1 flex justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
+      <span>{tz ? formatLocal(new Date(samples[0].utc), tz, "HH:mm") : formatLocal(new Date(samples[0].utc), "UTC", "HH:mm")}</span>
+      <span>
+        {tz
+          ? formatLocal(new Date(samples[samples.length - 1].utc), tz, "HH:mm")
+          : formatLocal(new Date(samples[samples.length - 1].utc), "UTC", "HH:mm")}
+      </span>
+    </div>
+    </>
   );
 }

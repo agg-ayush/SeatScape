@@ -27,10 +27,12 @@ export type Recommendation = {
   sunriseSide?: "A" | "F";
   sunriseSampleIndex?: number;
   sunriseCity?: string;
+  sunriseTz?: string;
   sunsetUTC?: string;
   sunsetSide?: "A" | "F";
   sunsetSampleIndex?: number;
   sunsetCity?: string;
+  sunsetTz?: string;
   confidence: number; // 0..1
   samples: Sample[];
 };

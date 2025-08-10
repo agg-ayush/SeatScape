@@ -24,6 +24,7 @@ type Props = {
   sunsetIndex?: number;
   sunriseCity?: string;
   sunsetCity?: string;
+  planeIndex?: number;
 };
 
 const FitBounds = ({ samples }: { samples: Sample[] }) => {
@@ -37,7 +38,7 @@ const FitBounds = ({ samples }: { samples: Sample[] }) => {
   return null;
 };
 
-export default function MapView({ samples, cities = [], thresholdKm = 75, sunriseIndex, sunsetIndex, sunriseCity, sunsetCity }: Props) {
+export default function MapView({ samples, cities = [], thresholdKm = 75, sunriseIndex, sunsetIndex, sunriseCity, sunsetCity, planeIndex }: Props) {
   const [legendOpen, setLegendOpen] = useState(true);
   if (!samples || samples.length < 2) return null;
 
@@ -46,6 +47,8 @@ export default function MapView({ samples, cities = [], thresholdKm = 75, sunris
   const sunsetSample = sunsetIndex !== undefined ? samples[sunsetIndex] : null;
   const sunriseIcon = L.divIcon({ className: "", html: "🌅", iconSize: [20, 20], iconAnchor: [10, 10] });
   const sunsetIcon = L.divIcon({ className: "", html: "🌇", iconSize: [20, 20], iconAnchor: [10, 10] });
+  const planeSample = planeIndex !== undefined ? samples[Math.min(planeIndex, samples.length - 1)] : null;
+  const planeIcon = L.divIcon({ className: "opacity-60", html: "✈️", iconSize: [20, 20], iconAnchor: [10, 10] });
 
   function cityStyle(side: "A" | "F", dist: number) {
     const t = Math.max(10, thresholdKm);
@@ -99,6 +102,11 @@ export default function MapView({ samples, cities = [], thresholdKm = 75, sunris
               </CircleMarker>
             );
           })}
+        </Pane>
+
+        {/* plane marker */}
+        <Pane name="plane-marker" style={{ zIndex: 650 }}>
+          {planeSample && <Marker position={[planeSample.lat, planeSample.lon]} icon={planeIcon} opacity={0.6} />}
         </Pane>
 
         {/* sun markers (top) */}

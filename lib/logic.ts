@@ -17,17 +17,17 @@ export function computeRecommendation(params: {
 }): Recommendation {
   const { origin, dest, preference, sampleMinutes = 5 } = params;
 
-  function nearestCityName(lat: number, lon: number): string | undefined {
-    let best: string | undefined;
+  function nearestCity(lat: number, lon: number): { name: string; tz?: string } | undefined {
+    let best: City | undefined;
     let bestDist = Infinity;
     for (const c of cities as City[]) {
       const d = gcDistanceKm({ lat, lon }, { lat: c.lat, lon: c.lon });
       if (d < bestDist) {
         bestDist = d;
-        best = c.name;
+        best = c;
       }
     }
-    return best;
+    return best ? { name: best.name, tz: best.tz } : undefined;
   }
 
   // Convert departure local time to UTC Date
@@ -49,7 +49,9 @@ export function computeRecommendation(params: {
   let sunriseSampleIndex: number | undefined;
   let sunsetSampleIndex: number | undefined;
   let sunriseCity: string | undefined;
+  let sunriseTz: string | undefined;
   let sunsetCity: string | undefined;
+  let sunsetTz: string | undefined;
 
   const samples: Sample[] = [];
   let wasEffective = false;
@@ -74,14 +76,18 @@ export function computeRecommendation(params: {
       sunriseUTC = ts.toISOString();
       sunriseSide = side === "A" || side === "F" ? side : undefined;
       sunriseSampleIndex = idx;
-      sunriseCity = nearestCityName(pos.lat, pos.lon);
+      const city = nearestCity(pos.lat, pos.lon);
+      sunriseCity = city?.name;
+      sunriseTz = city?.tz;
     }
 
     if (wasEffective && !effective) {
       sunsetUTC = ts.toISOString();
       sunsetSide = currentSide;
       sunsetSampleIndex = idx;
-      sunsetCity = nearestCityName(pos.lat, pos.lon);
+      const city = nearestCity(pos.lat, pos.lon);
+      sunsetCity = city?.name;
+      sunsetTz = city?.tz;
     }
 
     if (effective) {
@@ -129,10 +135,12 @@ export function computeRecommendation(params: {
     sunriseSide,
     sunriseSampleIndex,
     sunriseCity,
+    sunriseTz,
     sunsetUTC,
     sunsetSide,
     sunsetSampleIndex,
     sunsetCity,
+    sunsetTz,
     confidence: Math.round(confidence * 100) / 100,
     samples,
   };

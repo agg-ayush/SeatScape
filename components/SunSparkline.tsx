@@ -75,6 +75,17 @@ export default function SunSparkline({ samples, height = 80, tz }: Props) {
     };
   }, [samples, height, paddingTop]);
 
+  const tickTimes = useMemo(() => {
+    if (!samples.length) return [];
+    const start = new Date(samples[0].utc);
+    const end = new Date(samples[samples.length - 1].utc);
+    const intervals = 4;
+    const delta = end.getTime() - start.getTime();
+    return Array.from({ length: intervals + 1 }, (_, i) =>
+      formatLocal(new Date(start.getTime() + (delta * i) / intervals), tz ?? "UTC", "HH:mm"),
+    );
+  }, [samples, tz]);
+
   if (!model) return null;
 
   const {
@@ -233,8 +244,9 @@ export default function SunSparkline({ samples, height = 80, tz }: Props) {
       </g>
     </svg>
     <div className="mt-1 flex justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
-      <span>{formatLocal(new Date(samples[0].utc), tz ?? "UTC", "HH:mm")}</span>
-      <span>{formatLocal(new Date(samples[samples.length - 1].utc), tz ?? "UTC", "HH:mm")}</span>
+      {tickTimes.map((t, i) => (
+        <span key={i}>{t}</span>
+      ))}
     </div>
     </>
   );

@@ -48,7 +48,7 @@ export default function MapView({ samples, cities = [], thresholdKm = 75, sunris
   const sunriseIcon = L.divIcon({ className: "", html: "🌅", iconSize: [20, 20], iconAnchor: [10, 10] });
   const sunsetIcon = L.divIcon({ className: "", html: "🌇", iconSize: [20, 20], iconAnchor: [10, 10] });
   const planeSample = planeIndex !== undefined ? samples[Math.min(planeIndex, samples.length - 1)] : null;
-  const planeIcon = L.divIcon({ className: "opacity-60", html: "✈️", iconSize: [20, 20], iconAnchor: [10, 10] });
+  const planeIcon = L.divIcon({ className: "opacity-90", html: "✈️", iconSize: [20, 20], iconAnchor: [10, 10] });
 
   function cityStyle(side: "A" | "F", dist: number) {
     const t = Math.max(10, thresholdKm);
@@ -106,7 +106,7 @@ export default function MapView({ samples, cities = [], thresholdKm = 75, sunris
 
         {/* plane marker */}
         <Pane name="plane-marker" style={{ zIndex: 650 }}>
-          {planeSample && <Marker position={[planeSample.lat, planeSample.lon]} icon={planeIcon} opacity={0.6} />}
+          {planeSample && <Marker position={[planeSample.lat, planeSample.lon]} icon={planeIcon} opacity={0.9} />}
         </Pane>
 
         {/* sun markers (top) */}

@@ -1,6 +1,6 @@
 import { Airport, Preference, Recommendation, Sample } from "./types";
 import { gcDistanceKm, intermediatePoint, trackAt, wrapTo180 } from "./geo";
-import { addMinutes, localISOToUTCDate } from "./time";
+import { addMinutes, localISOToUTCDate, formatLocal } from "./time";
 import { sunAt, isSunEffective } from "./sun";
 import cities from "./cities.json";
 import type { City } from "./cities";
@@ -144,5 +144,26 @@ export function computeRecommendation(params: {
     confidence: Math.round(confidence * 100) / 100,
     samples,
   };
+}
+
+/** Index of the first sample where the sun is above the horizon. */
+export function firstSunIndex(samples: Sample[]): number | null {
+  for (let i = 0; i < samples.length; i++) if (samples[i].alt > 0) return i;
+  return null;
+}
+
+/** Index of the last sample where the sun is above the horizon. */
+export function lastSunIndex(samples: Sample[]): number | null {
+  for (let i = samples.length - 1; i >= 0; i--) if (samples[i].alt > 0) return i;
+  return null;
+}
+
+/**
+ * Format a sample's UTC time into local time of a reference zone.
+ * Returns null when index is out of bounds.
+ */
+export function sampleLocalHM(samples: Sample[], idx: number, tz: string): string | null {
+  if (idx == null || idx < 0 || idx >= samples.length) return null;
+  return formatLocal(new Date(samples[idx].utc), tz, "HH:mm");
 }
 

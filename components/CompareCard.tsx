@@ -5,6 +5,7 @@ import type { Recommendation, Airport } from "@/lib/types";
 import { sortPassBys, type PassBy, type SortMode } from "@/lib/cities";
 import Slider from "@/components/ui/Slider";
 import { formatLocal } from "@/lib/time";
+import { firstSunIndex, lastSunIndex, sampleLocalHM } from "@/lib/logic";
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -82,6 +83,18 @@ export default function CompareCard({
   const leftPct = totalEff ? Math.round((rec.leftMinutes / totalEff) * 100) : 0;
   const rightPct = totalEff ? Math.round((rec.rightMinutes / totalEff) * 100) : 0;
 
+  const sunriseIdx = firstSunIndex(rec.samples);
+  const sunsetIdx = lastSunIndex(rec.samples);
+  const sunriseNote =
+    sunriseIdx !== null && origin?.tz && ["A", "F"].includes(rec.samples[sunriseIdx].side)
+      ? `Sunrise ~${sampleLocalHM(rec.samples, sunriseIdx, origin.tz)} on ${rec.samples[sunriseIdx].side} (${rec.samples[sunriseIdx].side === "A" ? "left" : "right"})`
+      : null;
+  const sunsetNote =
+    sunsetIdx !== null && origin?.tz && ["A", "F"].includes(rec.samples[sunsetIdx].side)
+      ? `Sunset ~${sampleLocalHM(rec.samples, sunsetIdx, origin.tz)} on ${rec.samples[sunsetIdx].side} (${rec.samples[sunsetIdx].side === "A" ? "left" : "right"})`
+      : null;
+  const visNote = [sunriseNote, sunsetNote].filter(Boolean).join(" • ");
+
   return (
     <div className="relative p-5 bg-white dark:bg-zinc-800 rounded-2xl shadow border border-zinc-200 dark:border-zinc-700">
       {/* Header row: left (pill + sort), right (threshold only) */}
@@ -146,6 +159,10 @@ export default function CompareCard({
           {/* Time scrubber hidden for now to keep the map uncluttered */}
         </div>
       </div>
+
+      <p className="mb-3 text-sm text-zinc-600 dark:text-zinc-400">
+        Sun exposure — left {leftPct}% • right {rightPct}%{visNote ? ` • ${visNote}` : ""}
+      </p>
 
       {((!rec.sunriseSide && rec.sunriseUTC) || (!rec.sunsetSide && rec.sunsetUTC)) && (
         <div className="mb-3 flex flex-wrap gap-2">

@@ -20,7 +20,6 @@ export default function SunSparkline({ samples, height = 80, tz }: Props) {
     const xs = samples.map((_, i) => i);
     const ys = samples.map((s) => s.alt);
 
-    const xMin = 0;
     const xMax = Math.max(1, samples.length - 1);
     // pad y-range a bit to avoid clipping at edges
     const yMin = Math.min(-10, Math.min(...ys)) - 1;
@@ -29,8 +28,7 @@ export default function SunSparkline({ samples, height = 80, tz }: Props) {
     const innerW = width - paddingX * 2;
     const innerH = height - paddingTop - paddingBottom;
 
-    const xScale = (i: number) =>
-      paddingX + ((i - xMin) / (xMax - xMin)) * innerW;
+    const xScale = (i: number) => paddingX + (i / xMax) * innerW;
 
     // y grows downward → invert for altitude
     const yScale = (v: number) =>
@@ -235,12 +233,8 @@ export default function SunSparkline({ samples, height = 80, tz }: Props) {
       </g>
     </svg>
     <div className="mt-1 flex justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
-      <span>{tz ? formatLocal(new Date(samples[0].utc), tz, "HH:mm") : formatLocal(new Date(samples[0].utc), "UTC", "HH:mm")}</span>
-      <span>
-        {tz
-          ? formatLocal(new Date(samples[samples.length - 1].utc), tz, "HH:mm")
-          : formatLocal(new Date(samples[samples.length - 1].utc), "UTC", "HH:mm")}
-      </span>
+      <span>{formatLocal(new Date(samples[0].utc), tz ?? "UTC", "HH:mm")}</span>
+      <span>{formatLocal(new Date(samples[samples.length - 1].utc), tz ?? "UTC", "HH:mm")}</span>
     </div>
     </>
   );

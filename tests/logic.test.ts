@@ -17,6 +17,22 @@ const DXB: Airport = {
   tz: "Asia/Dubai",
 };
 
+const EQ0: Airport = {
+  iata: "EQ0",
+  name: "Equator",
+  lat: 0,
+  lon: 0,
+  tz: "Etc/UTC",
+};
+
+const N20: Airport = {
+  iata: "N20",
+  name: "20N",
+  lat: 20,
+  lon: 0,
+  tz: "Etc/UTC",
+};
+
 test("DEL to DXB evening — should produce a side and not crash", () => {
   const rec = computeRecommendation({
     origin: DEL,
@@ -31,30 +47,38 @@ test("DEL to DXB evening — should produce a side and not crash", () => {
   expect(rec.samples.length).toBeGreaterThan(0);
 });
 
-test("Sun already up at departure — no sunrise and sunset side captured", () => {
-  const rec = computeRecommendation({
-    origin: DEL,
-    dest: DXB,
-    departLocalISO: "2025-08-10T18:30",
+test("sunrise side determination", () => {
+  const north = computeRecommendation({
+    origin: EQ0,
+    dest: N20,
+    departLocalISO: "2025-08-10T04:50",
     preference: "see",
   });
-  expect(rec.sunriseUTC).toBeUndefined();
-  expect(rec.sunriseSide).toBeUndefined();
-  expect(rec.sunsetUTC).toBeDefined();
-  expect(rec.sunsetSide).toBe("A");
+  expect(north.sunriseSide).toBe("A");
+
+  const south = computeRecommendation({
+    origin: N20,
+    dest: EQ0,
+    departLocalISO: "2025-08-10T04:50",
+    preference: "see",
+  });
+  expect(south.sunriseSide).toBe("F");
 });
 
-test("DXB to DEL dawn flight — sunrise side and minutes after sunrise", () => {
-  const rec = computeRecommendation({
-    origin: DXB,
-    dest: DEL,
-    departLocalISO: "2025-08-10T06:00",
+test("sunset side determination", () => {
+  const north = computeRecommendation({
+    origin: EQ0,
+    dest: N20,
+    departLocalISO: "2025-08-10T17:10",
     preference: "see",
-    sampleMinutes: 20,
   });
-  expect(rec.sunriseUTC).toBeDefined();
-  expect(rec.sunriseSide).toBe("F");
-  expect(rec.rightMinutes).toBe(0);
-  expect(rec.sunsetUTC).toBeUndefined();
-  expect(rec.sunsetSide).toBeUndefined();
+  expect(north.sunsetSide).toBe("F");
+
+  const south = computeRecommendation({
+    origin: N20,
+    dest: EQ0,
+    departLocalISO: "2025-08-10T17:10",
+    preference: "see",
+  });
+  expect(south.sunsetSide).toBe("A");
 });

@@ -23,6 +23,21 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
       ? Math.round((Math.max(rec.leftMinutes, rec.rightMinutes) / total) * 100)
       : 0;
 
+  const sunriseLocal =
+    rec.sunriseUTC && origin
+      ? formatLocal(new Date(rec.sunriseUTC), origin.tz, "HH:mm")
+      : null;
+  const sunsetLocal =
+    rec.sunsetUTC && dest
+      ? formatLocal(new Date(rec.sunsetUTC), dest.tz, "HH:mm")
+      : null;
+  const sunriseSideTxt = rec.sunriseSide
+    ? ` on ${rec.sunriseSide === "A" ? "A (left)" : "F (right)"}`
+    : "";
+  const sunsetSideTxt = rec.sunsetSide
+    ? ` on ${rec.sunsetSide === "A" ? "A (left)" : "F (right)"}`
+    : "";
+
   const rationale =
     preference === "avoid"
       ? `keeps direct sun away for about ${100 - sunPct}% of the flight`
@@ -40,12 +55,16 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
     : `Pick ${sideRaw}`;
 
   const textToCopy = `${headline} — ${rationale}${
-    rec.sunriseCity
-      ? ` Sunrise on ${rec.sunriseSide === "A" ? "A (left)" : "F (right)"} near ${rec.sunriseCity}.`
-      : ""
-  }${
-    rec.sunsetCity
-      ? ` Sunset on ${rec.sunsetSide === "A" ? "A (left)" : "F (right)"} near ${rec.sunsetCity}.`
+    sunriseLocal || sunsetLocal
+      ? ` ${
+          sunriseLocal
+            ? `Sunrise ~${sunriseLocal}${rec.sunriseSide ? ` on ${rec.sunriseSide}` : ""} at ${origin?.iata ?? ""} (${origin?.tz ?? ""}).`
+            : ""
+        }${
+          sunsetLocal
+            ? ` Sunset ~${sunsetLocal}${rec.sunsetSide ? ` on ${rec.sunsetSide}` : ""} at ${dest?.iata ?? ""} (${dest?.tz ?? ""}).`
+            : ""
+        }`
       : ""
   }`;
 
@@ -79,19 +98,17 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
         <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
           {rationale}
         </span>
-        {(rec.sunriseCity || rec.sunsetCity) && (
-          <div className="flex gap-2">
-            {rec.sunriseCity && (
-              <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
-                Sunrise on {rec.sunriseSide === "A" ? "A (left)" : "F (right)"} near {rec.sunriseCity}
-              </span>
-            )}
-            {rec.sunsetCity && (
-              <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
-                Sunset on {rec.sunsetSide === "A" ? "A (left)" : "F (right)"} near {rec.sunsetCity}
-              </span>
-            )}
-          </div>
+        {sunriseLocal && (
+          <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
+            Sunrise ~{sunriseLocal}
+            {sunriseSideTxt} at {origin?.iata} ({origin?.tz})
+          </span>
+        )}
+        {sunsetLocal && (
+          <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
+            Sunset ~{sunsetLocal}
+            {sunsetSideTxt} at {dest?.iata} ({dest?.tz})
+          </span>
         )}
       </div>
 

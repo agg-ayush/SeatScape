@@ -22,7 +22,7 @@ export function computeRecommendation(params: {
     sampleMinutes = 5,
   } = params;
 
-  function nearestCityName(lat: number, lon: number): string | undefined {
+  function nearestCityName(lat: number, lon: number): strihttps://github.com/agg-ayush/SeatScape/pull/12/conflict?name=tests%252Flogic.test.ts&ancestor_oid=5a1bf7c5760c0aba3cb454ffa3feb34704b7069c&base_oid=590fd1fcc71e6a2697c17c04e4a5f3a6a53fc997&head_oid=f20fdd513e072ebef486cb8c360605dda8900fe0ng | undefined {
     let best: string | undefined;
     let bestDist = Infinity;
     for (const c of cities as City[]) {
@@ -50,19 +50,13 @@ export function computeRecommendation(params: {
   let sunriseUTC: string | undefined;
   let sunriseSide: "A" | "F" | undefined;
   let sunsetUTC: string | undefined;
+  let sunriseSide: "A" | "F" | undefined;
   let sunsetSide: "A" | "F" | undefined;
   const samples: Sample[] = [];
   let prevSample: Sample | undefined;
 
-  // Determine initial sun state at departure
-  const initialSun = sunAt(depUTC, origin.lat, origin.lon);
-  const initialCourse = trackAt(origin, dest, 0);
-  let wasEffective = isSunEffective(initialSun.altitudeDeg);
-  let prevSide: "A" | "F" | "none" = "none";
-  if (wasEffective) {
-    const rel0 = wrapTo180(initialSun.azimuthDeg - initialCourse);
-    prevSide = rel0 > 0 ? "F" : "A";
-  }
+  let wasEffective = false;
+  let currentSide: "A" | "F" | undefined;
 
   for (let elapsed = 0; elapsed <= totalMinutes; elapsed += sampleMinutes) {
     const frac = elapsed / totalMinutes;
@@ -92,6 +86,20 @@ export function computeRecommendation(params: {
     if (wasEffective && isEffective) {
       if (side === "A") leftMinutes += sampleMinutes;
       if (side === "F") rightMinutes += sampleMinutes;
+      if (altitudeDeg > peakAltitudeDeg) peakAltitudeDeg = altitudeDeg;
+
+      if (!wasEffective) {
+        sunriseUTC = ts.toISOString();
+        sunriseSide = side;
+        wasEffective = true;
+      }
+      currentSide = side;
+    } else {
+      if (wasEffective) {
+        sunsetUTC = ts.toISOString();
+        sunsetSide = currentSide;
+        wasEffective = false;
+      }
     }
 
     if (isEffective && altitudeDeg > peakAltitudeDeg) peakAltitudeDeg = altitudeDeg;

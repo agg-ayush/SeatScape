@@ -113,7 +113,7 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
         </div>
       )}
 
-      {/* Plane sun visualization */}
+      {/* PlaneSunViz */}
       {rec.samples && rec.samples.length > 0 && (
         <PlaneSunViz samples={rec.samples} />
       )}

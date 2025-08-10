@@ -80,8 +80,9 @@ export function intermediatePoint(a: P, b: P, f: number): P {
  */
 export function trackAt(a: P, b: P, f: number): number {
   const eps = 1e-6;
-  const f2 = Math.min(1, Math.max(0, f + eps));
-  const p1 = intermediatePoint(a, b, f);
+  const f1 = Math.max(0, Math.min(1, f - eps));
+  const f2 = Math.max(0, Math.min(1, f + eps));
+  const p1 = intermediatePoint(a, b, f1);
   const p2 = intermediatePoint(a, b, f2);
   return initialBearing(p1, p2);
 }

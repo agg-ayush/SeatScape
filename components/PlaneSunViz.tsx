@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useState, useRef, useEffect, type CSSProperties } from "react";
 import type { Sample } from "@/lib/types";
 import { sunPlaneRelation } from "@/lib/plane";
 import SunEventMarker from "@/components/SunEventMarker";
@@ -138,19 +138,10 @@ export default function PlaneSunViz({ samples, sunriseIndex, sunsetIndex }: Prop
             value={idx}
             onChange={(e) => setIndex(Number(e.target.value))}
             aria-label="Time along flight"
-            className="w-full cursor-pointer appearance-none accent-zinc-600 dark:accent-zinc-300 [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-zinc-200 dark:[&::-webkit-slider-runnable-track]:bg-zinc-700 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-zinc-600 dark:[&::-webkit-slider-thumb]:bg-zinc-300"
+            className={`w-full cursor-pointer ${sliderStyles.range}`}
+            style={{ "--progress": `${(idx / (samples.length - 1)) * 100}%` } as CSSProperties}
           />
         </div>
-        <input
-          type="range"
-          min={0}
-          max={samples.length - 1}
-          value={idx}
-          onChange={(e) => setIndex(Number(e.target.value))}
-          aria-label="Time along flight"
-          className={`mt-2 w-full cursor-pointer ${sliderStyles.range}`}
-          style={{ "--progress": `${(idx / (samples.length - 1)) * 100}%` } as CSSProperties}
-        />
       )}
     </div>
   );

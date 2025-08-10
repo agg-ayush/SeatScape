@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import type { Recommendation, Airport, Preference } from "@/lib/types";
+import { formatLocal } from "@/lib/time";
 import SunSparkline from "@/components/SunSparkline";
 import PlaneSunViz from "@/components/PlaneSunViz";
 

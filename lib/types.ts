@@ -25,8 +25,12 @@ export type Recommendation = {
   peakAltitudeDeg: number;
   sunriseUTC?: string;
   sunriseSide?: "A" | "F";
+  sunriseSampleIndex?: number;
+  sunriseCity?: string;
   sunsetUTC?: string;
   sunsetSide?: "A" | "F";
+  sunsetSampleIndex?: number;
+  sunsetCity?: string;
   confidence: number; // 0..1
   samples: Sample[];
 };

@@ -23,10 +23,11 @@ export default function Timeline({ items, zone }: Props) {
       <ul className="space-y-1.5 text-sm text-zinc-700 dark:text-zinc-200">
         {items.map((p, i) => {
           let timeLabel = "T+";
-          if (p.when instanceof Date && !isNaN(p.when.getTime())) {
+          if (p.timeUTC) {
+            const d = new Date(p.timeUTC);
             timeLabel = zone
-              ? formatLocal(p.when, zone, "HH:mm")
-              : p.when.toISOString().slice(11, 16) + "Z";
+              ? formatLocal(d, zone, "HH:mm")
+              : d.toISOString().slice(11, 16) + "Z";
           } else {
             const minutes = p.sampleIndex * 5; // default stepMinutes
             const hh = Math.floor(minutes / 60)

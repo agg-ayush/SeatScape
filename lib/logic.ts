@@ -15,14 +15,9 @@ export function computeRecommendation(params: {
   preference: Preference;
   sampleMinutes?: number;
 }): Recommendation {
-  const {
-    origin,
-    dest,
-    preference,
-    sampleMinutes = 5,
-  } = params;
+  const { origin, dest, preference, sampleMinutes = 5 } = params;
 
-  function nearestCityName(lat: number, lon: number): strihttps://github.com/agg-ayush/SeatScape/pull/12/conflict?name=tests%252Flogic.test.ts&ancestor_oid=5a1bf7c5760c0aba3cb454ffa3feb34704b7069c&base_oid=590fd1fcc71e6a2697c17c04e4a5f3a6a53fc997&head_oid=f20fdd513e072ebef486cb8c360605dda8900fe0ng | undefined {
+  function nearestCityName(lat: number, lon: number): string | undefined {
     let best: string | undefined;
     let bestDist = Infinity;
     for (const c of cities as City[]) {
@@ -48,61 +43,53 @@ export function computeRecommendation(params: {
   let rightMinutes = 0;
   let peakAltitudeDeg = -90;
   let sunriseUTC: string | undefined;
-  let sunriseSide: "A" | "F" | undefined;
   let sunsetUTC: string | undefined;
   let sunriseSide: "A" | "F" | undefined;
   let sunsetSide: "A" | "F" | undefined;
-  const samples: Sample[] = [];
-  let prevSample: Sample | undefined;
+  let sunriseSampleIndex: number | undefined;
+  let sunsetSampleIndex: number | undefined;
+  let sunriseCity: string | undefined;
+  let sunsetCity: string | undefined;
 
+  const samples: Sample[] = [];
   let wasEffective = false;
   let currentSide: "A" | "F" | undefined;
 
-  for (let elapsed = 0; elapsed <= totalMinutes; elapsed += sampleMinutes) {
+  for (let elapsed = 0, idx = 0; elapsed <= totalMinutes; elapsed += sampleMinutes, idx++) {
     const frac = elapsed / totalMinutes;
     const pos = intermediatePoint(origin, dest, frac);
     const course = trackAt(origin, dest, frac);
     const ts = addMinutes(depUTC, elapsed);
 
     const { azimuthDeg, altitudeDeg } = sunAt(ts, pos.lat, pos.lon);
-    const isEffective = isSunEffective(altitudeDeg);
+    const effective = isSunEffective(altitudeDeg);
 
     let side: "A" | "F" | "none" = "none";
-    if (isEffective) {
+    if (effective) {
       const rel = wrapTo180(azimuthDeg - course);
       side = rel > 0 ? "F" : "A"; // right = F, left = A
     }
 
-    if (!wasEffective && isEffective) {
+    if (!wasEffective && effective) {
       sunriseUTC = ts.toISOString();
       sunriseSide = side === "A" || side === "F" ? side : undefined;
+      sunriseSampleIndex = idx;
+      sunriseCity = nearestCityName(pos.lat, pos.lon);
     }
 
-    if (wasEffective && !isEffective) {
+    if (wasEffective && !effective) {
       sunsetUTC = ts.toISOString();
-      sunsetSide = prevSide === "A" || prevSide === "F" ? prevSide : undefined;
+      sunsetSide = currentSide;
+      sunsetSampleIndex = idx;
+      sunsetCity = nearestCityName(pos.lat, pos.lon);
     }
 
-    if (wasEffective && isEffective) {
+    if (effective) {
       if (side === "A") leftMinutes += sampleMinutes;
       if (side === "F") rightMinutes += sampleMinutes;
       if (altitudeDeg > peakAltitudeDeg) peakAltitudeDeg = altitudeDeg;
-
-      if (!wasEffective) {
-        sunriseUTC = ts.toISOString();
-        sunriseSide = side;
-        wasEffective = true;
-      }
-      currentSide = side;
-    } else {
-      if (wasEffective) {
-        sunsetUTC = ts.toISOString();
-        sunsetSide = currentSide;
-        wasEffective = false;
-      }
+      currentSide = side === "A" || side === "F" ? side : currentSide;
     }
-
-    if (isEffective && altitudeDeg > peakAltitudeDeg) peakAltitudeDeg = altitudeDeg;
 
     samples.push({
       lat: pos.lat,
@@ -114,8 +101,7 @@ export function computeRecommendation(params: {
       side,
     });
 
-    wasEffective = isEffective;
-    prevSide = side;
+    wasEffective = effective;
   }
 
   // Decide side based on preference
@@ -141,9 +127,14 @@ export function computeRecommendation(params: {
     peakAltitudeDeg: Math.round(peakAltitudeDeg * 10) / 10,
     sunriseUTC,
     sunriseSide,
+    sunriseSampleIndex,
+    sunriseCity,
     sunsetUTC,
     sunsetSide,
+    sunsetSampleIndex,
+    sunsetCity,
     confidence: Math.round(confidence * 100) / 100,
     samples,
   };
 }
+

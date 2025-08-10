@@ -15,7 +15,11 @@ import {
 import type { Sample } from "@/lib/types";
 import type { PassBy } from "@/lib/cities";
 import L from "leaflet";
-import { splitAntimeridian } from "@/lib/geo";
+import {
+  gcDistanceKm,
+  intermediatePoint,
+  splitAtAntimeridian,
+} from "@/lib/geo";
 
 type Props = {
   samples: Sample[] | null;
@@ -43,8 +47,18 @@ export default function MapView({ samples, cities = [], thresholdKm = 75, sunris
   const [legendOpen, setLegendOpen] = useState(true);
   if (!samples || samples.length < 2) return null;
 
-  const segments = splitAntimeridian(samples.map((s) => ({ lat: s.lat, lon: s.lon })));
-  const flatPoints = segments.flat();
+  const origin = { lat: samples[0].lat, lon: samples[0].lon };
+  const dest = { lat: samples[samples.length - 1].lat, lon: samples[samples.length - 1].lon };
+  const distanceKm = gcDistanceKm(origin, dest);
+  const pointCount = Math.min(512, Math.max(128, Math.ceil(distanceKm / 50) + 1));
+  const gcPoints: [number, number][] = [];
+  for (let i = 0; i < pointCount; i++) {
+    const f = i / (pointCount - 1);
+    const p = intermediatePoint(origin, dest, f);
+    gcPoints.push([p.lon, p.lat]);
+  }
+  const segments = splitAtAntimeridian(gcPoints);
+  const flatPoints = segments.flat().map(([lon, lat]) => ({ lat, lon }));
   const sunriseSample = sunriseIndex !== undefined ? samples[sunriseIndex] : null;
   const sunsetSample = sunsetIndex !== undefined ? samples[sunsetIndex] : null;
   const sunriseIcon = L.divIcon({ className: "", html: "🌅", iconSize: [20, 20], iconAnchor: [10, 10] });
@@ -82,7 +96,7 @@ export default function MapView({ samples, cities = [], thresholdKm = 75, sunris
         {/* route line below markers */}
         <Pane name="route" style={{ zIndex: 400 }}>
           {segments.map((seg, i) => (
-            <Polyline key={i} positions={seg.map((p) => [p.lat, p.lon])} />
+            <Polyline key={i} positions={seg.map(([lon, lat]) => [lat, lon])} />
           ))}
         </Pane>
 

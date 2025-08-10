@@ -1,5 +1,10 @@
 import { test, expect } from "vitest";
-import { gcDistanceKm, initialBearing, intermediatePoint, splitAntimeridian } from "../lib/geo";
+import {
+  gcDistanceKm,
+  initialBearing,
+  intermediatePoint,
+  splitAtAntimeridian,
+} from "../lib/geo";
 import { computeRecommendation } from "../lib/logic";
 import type { Airport } from "../lib/types";
 
@@ -29,7 +34,7 @@ test("Intermediate point returns valid lat/lon", () => {
   expect(mid.lon).toBeLessThanOrEqual(180);
 });
 
-test("splitAntimeridian handles polar-crossing routes", () => {
+test("splitAtAntimeridian handles polar-crossing routes", () => {
   const SFO: Airport = {
     iata: "SFO",
     name: "San Francisco International",
@@ -51,11 +56,11 @@ test("splitAntimeridian handles polar-crossing routes", () => {
     departLocalISO: "2025-01-01T00:00",
     preference: "see",
   });
-  const segs = splitAntimeridian(rec.samples.map(s => ({ lat: s.lat, lon: s.lon })));
+  const segs = splitAtAntimeridian(rec.samples.map(s => [s.lon, s.lat]));
   expect(segs.length).toBeGreaterThan(1);
   for (const seg of segs) {
     for (let i = 1; i < seg.length; i++) {
-      const diff = Math.abs(seg[i].lon - seg[i - 1].lon);
+      const diff = Math.abs(seg[i][0] - seg[i - 1][0]);
       expect(diff).toBeLessThanOrEqual(180);
     }
   }

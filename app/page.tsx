@@ -38,7 +38,7 @@ export default function Home() {
 
   // Comparison controls
   const [thresholdKm, setThresholdKm] = useState<number>(75);
-  const [progress, setProgress] = useState<number>(0);
+  const [sampleIndex, setSampleIndex] = useState<number>(0);
 
   const cityPassBys: PassBy[] = useMemo(() => {
     if (!rec?.samples?.length) return [];
@@ -83,7 +83,7 @@ export default function Home() {
     setRec(null);
     setOrigin(undefined);
     setDest(undefined);
-    setProgress(0);
+    setSampleIndex(0);
     setThresholdKm(75);
     router.replace("/");
   }
@@ -113,13 +113,18 @@ export default function Home() {
             dest={dest}
             thresholdKm={thresholdKm}
             onThresholdChange={(v) => setThresholdKm(v)}
-            progress={progress}
-            onProgressChange={(p) => setProgress(p)}
             passBys={cityPassBys}
           />
         )}
 
-        <ResultCard rec={rec} origin={origin} dest={dest} preference={pref} />
+        <ResultCard
+          rec={rec}
+          origin={origin}
+          dest={dest}
+          preference={pref}
+          sampleIndex={sampleIndex}
+          onSampleIndexChange={setSampleIndex}
+        />
 
         <MapView
           samples={rec?.samples ?? null}
@@ -129,6 +134,7 @@ export default function Home() {
           sunsetIndex={rec?.sunsetSampleIndex}
           sunriseCity={rec?.sunriseCity}
           sunsetCity={rec?.sunsetCity}
+          planeIndex={sampleIndex}
         />
 
         <footer className="text-xs text-zinc-500 dark:text-zinc-400 pt-2">

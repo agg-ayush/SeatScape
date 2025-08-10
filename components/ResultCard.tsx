@@ -12,9 +12,11 @@ type Props = {
   origin?: Airport;
   dest?: Airport;
   preference: Preference;
+  sampleIndex: number;
+  onSampleIndexChange: (i: number) => void;
 };
 
-export default function ResultCard({ rec, origin, dest, preference }: Props) {
+export default function ResultCard({ rec, origin, dest, preference, sampleIndex, onSampleIndexChange }: Props) {
   const [copied, setCopied] = useState(false);
   if (!rec) return null;
 
@@ -25,19 +27,19 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
       : 0;
 
   const sunriseLocal =
-    rec.sunriseUTC && origin
-      ? formatLocal(new Date(rec.sunriseUTC), origin.tz, "HH:mm")
+    rec.sunriseUTC && (rec.sunriseTz || origin?.tz)
+      ? formatLocal(new Date(rec.sunriseUTC), (rec.sunriseTz || origin?.tz)!, "HH:mm")
       : null;
   const sunsetLocal =
-    rec.sunsetUTC && dest
-      ? formatLocal(new Date(rec.sunsetUTC), dest.tz, "HH:mm")
+    rec.sunsetUTC && (rec.sunsetTz || dest?.tz)
+      ? formatLocal(new Date(rec.sunsetUTC), (rec.sunsetTz || dest?.tz)!, "HH:mm")
       : null;
   const sunriseSideTxt = rec.sunriseSide
     ? ` on ${rec.sunriseSide === "A" ? "A (left)" : "F (right)"}`
-    : "";
+    : " visible from both sides";
   const sunsetSideTxt = rec.sunsetSide
     ? ` on ${rec.sunsetSide === "A" ? "A (left)" : "F (right)"}`
-    : "";
+    : " visible from both sides";
 
   const rationale =
     preference === "avoid"
@@ -59,11 +61,19 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
     sunriseLocal || sunsetLocal
       ? ` ${
           sunriseLocal
-            ? `Sunrise ~${sunriseLocal}${rec.sunriseSide ? ` on ${rec.sunriseSide}` : ""} at ${origin?.iata ?? ""} (${origin?.tz ?? ""}).`
+            ? `Sunrise ~${sunriseLocal}${
+                rec.sunriseSide ? ` on ${rec.sunriseSide}` : " visible from both sides"
+              }${
+                rec.sunriseCity ? ` near ${rec.sunriseCity}` : origin ? ` at ${origin.iata}` : ""
+              } (${rec.sunriseTz || origin?.tz || ""}).`
             : ""
         }${
           sunsetLocal
-            ? ` Sunset ~${sunsetLocal}${rec.sunsetSide ? ` on ${rec.sunsetSide}` : ""} at ${dest?.iata ?? ""} (${dest?.tz ?? ""}).`
+            ? ` Sunset ~${sunsetLocal}${
+                rec.sunsetSide ? ` on ${rec.sunsetSide}` : " visible from both sides"
+              }${
+                rec.sunsetCity ? ` near ${rec.sunsetCity}` : dest ? ` at ${dest.iata}` : ""
+              } (${rec.sunsetTz || dest?.tz || ""}).`
             : ""
         }`
       : ""
@@ -102,20 +112,26 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
         {sunriseLocal && (
           <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
             Sunrise ~{sunriseLocal}
-            {sunriseSideTxt} at {origin?.iata} ({origin?.tz})
+            {sunriseSideTxt}
+            {rec.sunriseCity ? ` near ${rec.sunriseCity}` : origin ? ` at ${origin.iata}` : ""} ({
+              rec.sunriseTz || origin?.tz
+            })
           </span>
         )}
         {sunsetLocal && (
           <span className="px-2.5 py-1 rounded-full text-xs bg-zinc-100 dark:bg-zinc-700">
             Sunset ~{sunsetLocal}
-            {sunsetSideTxt} at {dest?.iata} ({dest?.tz})
+            {sunsetSideTxt}
+            {rec.sunsetCity ? ` near ${rec.sunsetCity}` : dest ? ` at ${dest.iata}` : ""} ({
+              rec.sunsetTz || dest?.tz
+            })
           </span>
         )}
       </div>
 
       {rec.samples && rec.samples.length > 1 && (
         <div className="text-zinc-700 dark:text-zinc-200">
-          <SunSparkline samples={rec.samples} />
+          <SunSparkline samples={rec.samples} tz={origin?.tz} />
         </div>
       )}
 
@@ -124,7 +140,10 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
           samples={rec.samples}
           sunriseIndex={rec.sunriseSampleIndex}
           sunsetIndex={rec.sunsetSampleIndex}
-          tz={origin?.tz}
+          index={sampleIndex}
+          onIndexChange={onSampleIndexChange}
+          sunriseTz={rec.sunriseTz || origin?.tz}
+          sunsetTz={rec.sunsetTz || dest?.tz}
         />
       )}
 

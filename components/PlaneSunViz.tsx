@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, type CSSProperties } from "react";
+import { useRef, useEffect, useState, type CSSProperties } from "react";
 import type { Sample } from "@/lib/types";
 import { sunPlaneRelation } from "@/lib/plane";
 import { formatLocal } from "@/lib/time";
@@ -11,11 +11,21 @@ interface Props {
   samples: Sample[] | null;
   sunriseIndex?: number;
   sunsetIndex?: number;
-  tz?: string;
+  index: number;
+  onIndexChange: (i: number) => void;
+  sunriseTz?: string;
+  sunsetTz?: string;
 }
 
-export default function PlaneSunViz({ samples, sunriseIndex, sunsetIndex, tz }: Props) {
-  const [index, setIndex] = useState(0);
+export default function PlaneSunViz({
+  samples,
+  sunriseIndex,
+  sunsetIndex,
+  index,
+  onIndexChange,
+  sunriseTz,
+  sunsetTz,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
 
@@ -57,12 +67,12 @@ export default function PlaneSunViz({ samples, sunriseIndex, sunsetIndex, tz }: 
       ? (sunsetIndex / (samples.length - 1)) * 100
       : null;
   const sunriseTime =
-    sunriseIndex !== undefined && tz
-      ? formatLocal(new Date(samples[sunriseIndex].utc), tz, "HH:mm")
+    sunriseIndex !== undefined && sunriseTz
+      ? formatLocal(new Date(samples[sunriseIndex].utc), sunriseTz, "HH:mm")
       : null;
   const sunsetTime =
-    sunsetIndex !== undefined && tz
-      ? formatLocal(new Date(samples[sunsetIndex].utc), tz, "HH:mm")
+    sunsetIndex !== undefined && sunsetTz
+      ? formatLocal(new Date(samples[sunsetIndex].utc), sunsetTz, "HH:mm")
       : null;
 
   return (
@@ -125,7 +135,7 @@ export default function PlaneSunViz({ samples, sunriseIndex, sunsetIndex, tz }: 
             min={0}
             max={samples.length - 1}
             value={idx}
-            onChange={(e) => setIndex(Number(e.target.value))}
+            onChange={(e) => onIndexChange(Number(e.target.value))}
             aria-label="Time along flight"
             className={`w-full cursor-pointer ${sliderStyles.range}`}
             style={{ "--progress": `${(idx / (samples.length - 1)) * 100}%` } as CSSProperties}

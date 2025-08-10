@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Recommendation, Airport, Preference } from "@/lib/types";
 import { firstSunIndex, lastSunIndex, sampleLocalHM } from "@/lib/logic";
 import SunSparkline from "@/components/SunSparkline";
@@ -19,10 +19,21 @@ type Props = {
 export default function ResultCard({ rec, origin, dest, preference, sampleIndex, onSampleIndexChange }: Props) {
   const [copied, setCopied] = useState(false);
   const [localIdx, setLocalIdx] = useState(sampleIndex);
+  const rafRef = useRef<number>();
 
   useEffect(() => {
     setLocalIdx(sampleIndex);
   }, [sampleIndex]);
+
+  useEffect(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      onSampleIndexChange(localIdx);
+    });
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [localIdx, onSampleIndexChange]);
 
   if (!rec) return null;
 
@@ -144,7 +155,6 @@ export default function ResultCard({ rec, origin, dest, preference, sampleIndex,
           onScrub={setLocalIdx}
           onIndexChange={(v) => {
             setLocalIdx(v);
-            onSampleIndexChange(v);
           }}
         />
       )}

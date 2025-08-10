@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Recommendation, Airport, Preference } from "@/lib/types";
 import { formatLocal } from "@/lib/time";
 import SunSparkline from "@/components/SunSparkline";
+import PlaneSunViz from "@/components/PlaneSunViz";
 
 type Props = {
   rec: Recommendation | null;
@@ -110,6 +111,11 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
         <div className="text-zinc-700 dark:text-zinc-200">
           <SunSparkline samples={rec.samples} />
         </div>
+      )}
+
+      {/* Plane sun visualization */}
+      {rec.samples && rec.samples.length > 0 && (
+        <PlaneSunViz samples={rec.samples} />
       )}
 
       {/* Actions */}

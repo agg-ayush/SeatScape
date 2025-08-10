@@ -124,6 +124,7 @@ export default function ResultCard({ rec, origin, dest, preference }: Props) {
           samples={rec.samples}
           sunriseIndex={rec.sunriseSampleIndex}
           sunsetIndex={rec.sunsetSampleIndex}
+          tz={origin?.tz}
         />
       )}
 

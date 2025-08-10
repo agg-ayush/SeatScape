@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, type CSSProperties } from "react";
 import type { Sample } from "@/lib/types";
 import { sunPlaneRelation } from "@/lib/plane";
+import { formatLocal } from "@/lib/time";
 import SunEventMarker from "@/components/SunEventMarker";
 import sliderStyles from "./ui/slider.module.css";
 
@@ -10,9 +11,10 @@ interface Props {
   samples: Sample[] | null;
   sunriseIndex?: number;
   sunsetIndex?: number;
+  tz?: string;
 }
 
-export default function PlaneSunViz({ samples, sunriseIndex, sunsetIndex }: Props) {
+export default function PlaneSunViz({ samples, sunriseIndex, sunsetIndex, tz }: Props) {
   const [index, setIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -40,8 +42,7 @@ export default function PlaneSunViz({ samples, sunriseIndex, sunsetIndex }: Prop
   const sunY = -Math.cos(angleRad) * radius;
   const glareWidth = width * (160 / 224);
   const glareHeight = width * (48 / 224);
-  const planeWidth = width * (160 / 224);
-  const planeHeight = width * (80 / 224);
+  const planeSize = width * (80 / 224);
   const sunSize = width * (24 / 224);
 
   const leftOpacity = rel.side === "A" ? rel.intensity : 0;
@@ -56,11 +57,13 @@ export default function PlaneSunViz({ samples, sunriseIndex, sunsetIndex }: Prop
       ? (sunsetIndex / (samples.length - 1)) * 100
       : null;
   const sunriseTime =
-    sunriseIndex !== undefined ?
-      new Date(samples[sunriseIndex].utc).toISOString().slice(11, 16) : null;
+    sunriseIndex !== undefined && tz
+      ? formatLocal(new Date(samples[sunriseIndex].utc), tz, "HH:mm")
+      : null;
   const sunsetTime =
-    sunsetIndex !== undefined ?
-      new Date(samples[sunsetIndex].utc).toISOString().slice(11, 16) : null;
+    sunsetIndex !== undefined && tz
+      ? formatLocal(new Date(samples[sunsetIndex].utc), tz, "HH:mm")
+      : null;
 
   return (
     <div className="mt-4 mx-auto w-full max-w-sm">
@@ -82,12 +85,12 @@ export default function PlaneSunViz({ samples, sunriseIndex, sunsetIndex }: Prop
 
         {/* plane silhouette */}
         <svg
-          viewBox="0 0 200 100"
+          viewBox="0 0 1200 1200"
+          preserveAspectRatio="xMidYMid meet"
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 fill-zinc-600 dark:fill-zinc-300"
-          style={{ width: planeWidth, height: planeHeight }}
+          style={{ width: planeSize, height: planeSize }}
         >
-          {/* Path handcrafted in Figma; cubic Beziers outline fuselage, wings, tail */}
-          <path d="M100 5 C112 12 122 24 122 38 C155 40 175 55 175 60 C175 65 155 80 122 82 C132 86 142 90 150 95 C140 98 120 100 100 99 C80 100 60 98 50 95 C58 90 68 86 78 82 C45 80 25 65 25 60 C25 55 45 40 78 38 C78 24 88 12 100 5 Z" />
+          <path d="m623.22 10.668c-5.8203-6.7695-14.289-10.668-23.219-10.668s-17.41 3.8984-23.23 10.668c-32.426 37.754-50.258 85.859-50.258 135.62v270.04l-514.27 404.07v122.45l514.29-195.91v183.67c0 17.09 4.2109 33.91 12.254 48.984l-183.67 122.45v97.957l244.89-97.957 244.89 97.957v-97.957l-183.67-122.45c8.0391-15.07 12.254-31.895 12.254-48.984v-183.67l514.29 195.91v-122.45l-514.29-404.07v-270.04c0-49.766-17.832-97.871-50.258-135.62" />
         </svg>
 
         {/* sun position */}
@@ -100,20 +103,6 @@ export default function PlaneSunViz({ samples, sunriseIndex, sunsetIndex }: Prop
             top: `calc(50% + ${sunY}px - ${sunSize / 2}px)`,
           }}
         />
-        {sunrisePct !== null && sunriseTime && (
-          <SunEventMarker
-            type="sunrise"
-            time={sunriseTime}
-            style={{ left: `${sunrisePct}%`, top: 0, transform: "translate(-50%, -100%)" }}
-          />
-        )}
-        {sunsetPct !== null && sunsetTime && (
-          <SunEventMarker
-            type="sunset"
-            time={sunsetTime}
-            style={{ left: `${sunsetPct}%`, top: 0, transform: "translate(-50%, -100%)" }}
-          />
-        )}
       </div>
       {samples.length > 1 && (
         <div className="relative mt-2">

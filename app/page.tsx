@@ -11,7 +11,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import CompareCard from "@/components/CompareCard";
 
 import { computeRecommendation } from "@/lib/logic";
-import { detectCityPassBysFromSamples, type PassBy } from "@/lib/cities";
+import { detectCityPassBysFromSamples, type PassBy, type City } from "@/lib/cities";
 import type { Airport, Recommendation, Preference } from "@/lib/types";
 import cities from "@/lib/cities.json";
 
@@ -43,7 +43,7 @@ export default function Home() {
   const cityPassBys: PassBy[] = useMemo(() => {
     if (!rec?.samples?.length) return [];
     try {
-      return detectCityPassBysFromSamples(rec.samples as any, cities as any, {
+      return detectCityPassBysFromSamples(rec.samples, cities as City[], {
         thresholdKm,
       });
     } catch {
@@ -121,7 +121,15 @@ export default function Home() {
 
         <ResultCard rec={rec} origin={origin} dest={dest} preference={pref} />
 
-        <MapView samples={rec?.samples ?? null} cities={cityPassBys} thresholdKm={thresholdKm} />
+        <MapView
+          samples={rec?.samples ?? null}
+          cities={cityPassBys}
+          thresholdKm={thresholdKm}
+          sunriseIndex={rec?.sunriseSampleIndex}
+          sunsetIndex={rec?.sunsetSampleIndex}
+          sunriseCity={rec?.sunriseCity}
+          sunsetCity={rec?.sunsetCity}
+        />
 
         <footer className="text-xs text-zinc-500 dark:text-zinc-400 pt-2">
           Assumes great-circle routing and fair weather. Window seats: A (left),

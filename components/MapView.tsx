@@ -10,6 +10,7 @@ import {
   useMap,
   Popup,
   Tooltip,
+  Marker,
 } from "react-leaflet";
 import type { Sample } from "@/lib/types";
 import type { PassBy } from "@/lib/cities";
@@ -19,6 +20,10 @@ type Props = {
   samples: Sample[] | null;
   cities?: PassBy[];
   thresholdKm?: number;
+  sunriseIndex?: number;
+  sunsetIndex?: number;
+  sunriseCity?: string;
+  sunsetCity?: string;
 };
 
 const FitBounds = ({ samples }: { samples: Sample[] }) => {
@@ -32,14 +37,15 @@ const FitBounds = ({ samples }: { samples: Sample[] }) => {
   return null;
 };
 
-export default function MapView({ samples, cities = [], thresholdKm = 75 }: Props) {
+export default function MapView({ samples, cities = [], thresholdKm = 75, sunriseIndex, sunsetIndex, sunriseCity, sunsetCity }: Props) {
   const [legendOpen, setLegendOpen] = useState(true);
   if (!samples || samples.length < 2) return null;
 
   const latlngs = samples.map((s) => [s.lat, s.lon]) as [number, number][];
-  const firstSunIdx = samples.findIndex((s) => s.alt >= 5);
-  const lastSunIdxFromEnd = [...samples].reverse().findIndex((s) => s.alt >= 5);
-  const lastIdx = lastSunIdxFromEnd >= 0 ? samples.length - 1 - lastSunIdxFromEnd : -1;
+  const sunriseSample = sunriseIndex !== undefined ? samples[sunriseIndex] : null;
+  const sunsetSample = sunsetIndex !== undefined ? samples[sunsetIndex] : null;
+  const sunriseIcon = L.divIcon({ className: "", html: "🌅", iconSize: [20, 20], iconAnchor: [10, 10] });
+  const sunsetIcon = L.divIcon({ className: "", html: "🌇", iconSize: [20, 20], iconAnchor: [10, 10] });
 
   function cityStyle(side: "A" | "F", dist: number) {
     const t = Math.max(10, thresholdKm);
@@ -97,33 +103,19 @@ export default function MapView({ samples, cities = [], thresholdKm = 75 }: Prop
 
         {/* sun markers (top) */}
         <Pane name="sun-markers" style={{ zIndex: 700 }}>
-          {firstSunIdx >= 0 && (
-            <CircleMarker
-              center={[samples[firstSunIdx].lat, samples[firstSunIdx].lon]}
-              radius={7}
-              pathOptions={{
-                color: "#22c55e",
-                weight: 2,
-                fillColor: "#22c55e",
-                fillOpacity: 1,
-              }}
-            >
-              <Tooltip direction="top" offset={[0, -8]} opacity={1}>first sun</Tooltip>
-            </CircleMarker>
+          {sunriseSample && (
+            <Marker position={[sunriseSample.lat, sunriseSample.lon]} icon={sunriseIcon}>
+              <Tooltip direction="top" offset={[0, -8]} opacity={1}>
+                Sunrise{sunriseCity ? ` near ${sunriseCity}` : ""}
+              </Tooltip>
+            </Marker>
           )}
-          {lastIdx >= 0 && lastIdx !== firstSunIdx && (
-            <CircleMarker
-              center={[samples[lastIdx].lat, samples[lastIdx].lon]}
-              radius={7}
-              pathOptions={{
-                color: "#ef4444",
-                weight: 2,
-                fillColor: "#ef4444",
-                fillOpacity: 1,
-              }}
-            >
-              <Tooltip direction="top" offset={[0, -8]} opacity={1}>last sun</Tooltip>
-            </CircleMarker>
+          {sunsetSample && (
+            <Marker position={[sunsetSample.lat, sunsetSample.lon]} icon={sunsetIcon}>
+              <Tooltip direction="top" offset={[0, -8]} opacity={1}>
+                Sunset{sunsetCity ? ` near ${sunsetCity}` : ""}
+              </Tooltip>
+            </Marker>
           )}
         </Pane>
 
@@ -147,12 +139,12 @@ export default function MapView({ samples, cities = [], thresholdKm = 75 }: Prop
           {legendOpen && (
             <div className="mt-2 space-y-1 text-xs">
               <div className="flex items-center gap-2">
-                <span className="inline-block h-2 w-2 rounded-full" style={{background:"#22c55e"}}></span>
-                <span>First sun</span>
+                <span className="inline-block">🌅</span>
+                <span>Sunrise</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="inline-block h-2 w-2 rounded-full" style={{background:"#ef4444"}}></span>
-                <span>Last sun</span>
+                <span className="inline-block">🌇</span>
+                <span>Sunset</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="inline-block h-2 w-2 rounded-full" style={{background:"#a855f7"}}></span>

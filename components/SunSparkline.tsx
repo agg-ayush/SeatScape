@@ -1,9 +1,10 @@
 "use client";
 
 import type { Sample } from "@/lib/types";
-import { useMemo } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { formatLocal } from "@/lib/time";
 import SunEventMarker from "@/components/SunEventMarker";
+import { clamp } from "@/lib/util";
 
 type Props = {
   samples: Sample[];
@@ -28,13 +29,25 @@ export default function SunSparkline({
 }: Props) {
   // Reserve space on top for the legend so the path never overlaps it
   const LEGEND_SPACE = 34;
-  const width = 560;
   const paddingX = 12;
   const paddingBottom = 10;
   const paddingTop = 10 + LEGEND_SPACE; // ← extra top room
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const resize = () => setWidth(el.clientWidth);
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const model = useMemo(() => {
-    if (!samples.length) return null;
+    if (!samples.length || width === 0) return null;
 
     const xs = samples.map((_, i) => i);
     const ys = samples.map((s) => s.alt);
@@ -92,7 +105,7 @@ export default function SunSparkline({
       fullPath,
       sunPath,
     };
-  }, [samples, height, paddingTop]);
+  }, [samples, height, paddingTop, width]);
 
   const tickTimes = useMemo(() => {
     if (!samples.length) return [];
@@ -130,7 +143,10 @@ export default function SunSparkline({
     xScale,
   } = model;
 
-  const activeIdx = index !== undefined ? Math.min(index, samples.length - 1) : undefined;
+  const activeIdx =
+    index !== undefined
+      ? clamp(Math.round(index), 0, samples.length - 1)
+      : undefined;
   const activePt = activeIdx !== undefined ? pts[activeIdx] : null;
 
   const sunriseX =
@@ -149,13 +165,14 @@ export default function SunSparkline({
       : null;
 
   return (
-    <div className="relative mt-3">
+    <div ref={containerRef} className="relative mt-3 overflow-hidden rounded-lg">
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        width="100%"
+        width={W}
         height={H}
         role="img"
         aria-label="Sun altitude over flight time"
+        className="block"
       >
       <defs>
         <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
@@ -325,9 +342,11 @@ export default function SunSparkline({
           }}
         />
       )}
-      <div className="mt-1 flex justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
+      <div className="mt-1 flex justify-between text-[10px] text-zinc-500 dark:text-zinc-400 overflow-hidden">
         {tickTimes.map((t, i) => (
-          <span key={i}>{t}</span>
+          <span key={i} className="tabular-nums">
+            {t}
+          </span>
         ))}
       </div>
     </div>

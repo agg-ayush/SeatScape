@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Recommendation, Airport, Preference } from "@/lib/types";
 import { firstSunIndex, lastSunIndex, sampleLocalHM } from "@/lib/logic";
 import SunSparkline from "@/components/SunSparkline";
@@ -18,6 +18,12 @@ type Props = {
 
 export default function ResultCard({ rec, origin, dest, preference, sampleIndex, onSampleIndexChange }: Props) {
   const [copied, setCopied] = useState(false);
+  const [localIdx, setLocalIdx] = useState(sampleIndex);
+
+  useEffect(() => {
+    setLocalIdx(sampleIndex);
+  }, [sampleIndex]);
+
   if (!rec) return null;
 
   const total = rec.leftMinutes + rec.rightMinutes;
@@ -126,7 +132,7 @@ export default function ResultCard({ rec, origin, dest, preference, sampleIndex,
             sunsetIndex={rec.sunsetSampleIndex}
             sunriseTz={rec.sunriseTz || origin?.tz}
             sunsetTz={rec.sunsetTz || dest?.tz}
-            index={sampleIndex}
+            index={localIdx}
           />
         </div>
       )}
@@ -134,8 +140,12 @@ export default function ResultCard({ rec, origin, dest, preference, sampleIndex,
       {rec.samples && rec.samples.length > 0 && (
         <PlaneSunViz
           samples={rec.samples}
-          index={sampleIndex}
-          onIndexChange={onSampleIndexChange}
+          index={localIdx}
+          onScrub={setLocalIdx}
+          onIndexChange={(v) => {
+            setLocalIdx(v);
+            onSampleIndexChange(v);
+          }}
         />
       )}
 

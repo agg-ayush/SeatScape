@@ -1,19 +1,27 @@
 "use client";
 
-import { useRef, useEffect, useState, type CSSProperties } from "react";
+import { useRef, useEffect, useState } from "react";
 import type { Sample } from "@/lib/types";
 import { sunPlaneRelation } from "@/lib/plane";
-import sliderStyles from "./ui/slider.module.css";
+import Slider from "@/components/ui/Slider";
+import { clamp } from "@/lib/util";
 
 interface Props {
   samples: Sample[] | null;
   index: number;
-  onIndexChange: (i: number) => void;
+  onScrub: (i: number) => void; // fires during drag
+  onIndexChange: (i: number) => void; // commit
 }
 
-export default function PlaneSunViz({ samples, index, onIndexChange }: Props) {
+export default function PlaneSunViz({
+  samples,
+  index,
+  onScrub,
+  onIndexChange,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
+  const [localIdx, setLocalIdx] = useState(index);
 
   useEffect(() => {
     const update = () => {
@@ -26,9 +34,13 @@ export default function PlaneSunViz({ samples, index, onIndexChange }: Props) {
     return () => window.removeEventListener("resize", update);
   }, []);
 
+  useEffect(() => {
+    setLocalIdx(index);
+  }, [index]);
+
   if (!samples || samples.length === 0) return null;
 
-  const idx = Math.min(index, samples.length - 1);
+  const idx = clamp(localIdx, 0, samples.length - 1);
   const s = samples[idx];
   const rel = sunPlaneRelation(s.az, s.course, s.alt);
   const showSun = s.alt > 0;
@@ -89,15 +101,21 @@ export default function PlaneSunViz({ samples, index, onIndexChange }: Props) {
       </div>
       {samples.length > 1 && (
         <div className="relative mt-2">
-          <input
-            type="range"
+          <Slider
             min={0}
             max={samples.length - 1}
-            value={idx}
-            onChange={(e) => onIndexChange(Number(e.target.value))}
-            aria-label="Time along flight"
-            className={`w-full cursor-pointer ${sliderStyles.range}`}
-            style={{ "--progress": `${(idx / (samples.length - 1)) * 100}%` } as CSSProperties}
+            value={localIdx}
+            onChange={(v) => {
+              setLocalIdx(v);
+              onScrub(v);
+            }}
+            onCommit={(v) => {
+              const c = clamp(v, 0, samples.length - 1);
+              setLocalIdx(c);
+              onIndexChange(c);
+            }}
+            ariaLabel="Time along flight"
+            className="w-full cursor-pointer"
           />
         </div>
       )}

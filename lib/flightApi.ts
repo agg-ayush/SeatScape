@@ -2,6 +2,13 @@ import { DateTime } from "luxon";
 import type { InputsSnapshot, Airport } from "@/lib/types";
 import airportsData from "@/lib/airports.json";
 
+export type NormalizedFlight = {
+  airline: string;
+  flightNumber: string;
+  departure: { iata: string; time: string };
+  arrival: { iata: string; time: string };
+};
+
 type ApiSegment = {
   iata?: string | null;
   actual?: string | null;
@@ -14,6 +21,8 @@ type ApiFlight = {
   flight_date?: string;
   departure?: ApiSegment;
   arrival?: ApiSegment;
+  airline?: { name?: string };
+  flight?: { iata?: string; number?: string };
   [key: string]: unknown;
 };
 
@@ -33,11 +42,18 @@ function selectTime(seg: ApiSegment) {
   return seg.actual || seg.estimated || seg.scheduled || undefined;
 }
 
-export function normalizeFlight(raw: ApiFlight) {
+export function normalizeFlight(raw: ApiFlight): NormalizedFlight {
   return {
-    ...raw,
-    departure: { ...raw?.departure, time: selectTime(raw?.departure ?? {}) },
-    arrival: { ...raw?.arrival, time: selectTime(raw?.arrival ?? {}) },
+    airline: raw.airline?.name ?? "",
+    flightNumber: raw.flight?.iata ?? raw.flight?.number ?? "",
+    departure: {
+      iata: raw.departure?.iata ?? "",
+      time: selectTime(raw.departure ?? {}) ?? "",
+    },
+    arrival: {
+      iata: raw.arrival?.iata ?? "",
+      time: selectTime(raw.arrival ?? {}) ?? "",
+    },
   };
 }
 
@@ -50,15 +66,16 @@ export async function buildInputsFromFlight(
     ? (data.data as ApiFlight[])
     : (data as ApiFlight[]);
   if (!Array.isArray(flights)) return null;
+
   const raw = flights.find((f) => {
     const flightDate = f.flight_date || f.departure?.scheduled?.slice(0, 10);
     return flightDate === date;
   });
   if (!raw) return null;
-  const flight = normalizeFlight(raw);
 
-  const origin = resolveAirport(flight.departure?.iata ?? "");
-  const dest = resolveAirport(flight.arrival?.iata ?? "");
+  const flight = normalizeFlight(raw);
+  const origin = resolveAirport(flight.departure.iata);
+  const dest = resolveAirport(flight.arrival.iata);
   if (!origin || !dest || !flight.departure.time || !flight.arrival.time)
     return null;
 

@@ -1,6 +1,5 @@
 import { DateTime } from "luxon";
-import type { InputsSnapshot } from "@/components/Inputs";
-import type { Airport } from "@/lib/types";
+import type { InputsSnapshot, Airport } from "@/lib/types";
 import airportsData from "@/lib/airports.json";
 
 type ApiSegment = {

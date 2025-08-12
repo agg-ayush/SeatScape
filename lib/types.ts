@@ -36,3 +36,13 @@ export type Recommendation = {
   confidence: number; // 0..1
   samples: Sample[];
 };
+
+export type InputsSnapshot = {
+  origin: Airport;
+  dest: Airport;
+  departLocalISO: string; // origin-local "YYYY-MM-DDTHH:mm"
+  arriveLocalISO: string; // destination-local "YYYY-MM-DDTHH:mm"
+  preference: Preference;
+  from: string;
+  to: string;
+};

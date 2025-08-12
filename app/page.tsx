@@ -5,7 +5,8 @@ import dynamic from "next/dynamic";
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import Inputs, { InputsSnapshot } from "@/components/Inputs";
+import Inputs from "@/components/Inputs";
+import type { InputsSnapshot } from "@/lib/types";
 import ResultCard from "@/components/ResultCard";
 import ThemeToggle from "@/components/ThemeToggle";
 import CompareCard from "@/components/CompareCard";

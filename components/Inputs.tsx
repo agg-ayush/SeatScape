@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import airportsData from "@/lib/airports.json";
-import type { Airport, Preference } from "@/lib/types";
+import type { Airport, Preference, InputsSnapshot } from "@/lib/types";
 import IataCombo from "@/components/IataCombo";
 import { ArrowsRightLeftIcon } from "@heroicons/react/24/outline";
 import { convertLocalISO } from "@/lib/time";
@@ -11,15 +11,7 @@ import TimezoneSelect from "@/components/TimezoneSelect";
 import PreferenceToggle from "@/components/PreferenceToggle";
 import DateTime24 from "@/components/DateTime24";
 
-export type InputsSnapshot = {
-  origin: Airport;
-  dest: Airport;
-  departLocalISO: string; // origin-local "YYYY-MM-DDTHH:mm"
-  arriveLocalISO: string; // destination-local "YYYY-MM-DDTHH:mm"
-  preference: Preference;
-  from: string;
-  to: string;
-};
+export type { InputsSnapshot };
 
 type Defaults = { from?: string; to?: string; depart?: string; arrive?: string };
 type Props = {

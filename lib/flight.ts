@@ -1,4 +1,5 @@
 import type { Airport, Preference } from "@/lib/types";
+import { buildInputsFromFlight as buildInputsFromFlightApi } from "@/lib/flightApi";
 
 export type FlightInputs = {
   origin: Airport;
@@ -9,8 +10,11 @@ export type FlightInputs = {
 };
 
 export async function buildInputsFromFlight(
-  _flightNumber: string,
-  _date: string
+  flightNumber: string,
+  date: string
 ): Promise<FlightInputs> {
-  throw new Error("buildInputsFromFlight not implemented");
+  const snapshot = await buildInputsFromFlightApi(flightNumber, date);
+  if (!snapshot) throw new Error("Flight not found");
+  const { origin, dest, departLocalISO, arriveLocalISO, preference } = snapshot;
+  return { origin, dest, departLocalISO, arriveLocalISO, preference };
 }

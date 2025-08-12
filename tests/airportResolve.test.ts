@@ -9,7 +9,6 @@ afterEach(() => {
 
 test("resolveAirport returns data from local dataset", async () => {
   const fetchMock = vi.fn();
-  // @ts-expect-error override
   global.fetch = fetchMock;
   const a = await resolveAirport("DEL");
   expect(a).toBeTruthy();
@@ -29,7 +28,6 @@ test("resolveAirport falls back to API", async () => {
     ok: true,
     json: async () => apiData,
   });
-  // @ts-expect-error override
   global.fetch = fetchMock;
   const a = await resolveAirport("ZZZ");
   expect(a).toEqual(apiData);

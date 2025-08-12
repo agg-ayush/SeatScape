@@ -43,16 +43,21 @@ function selectTime(seg: ApiSegment) {
 }
 
 export function normalizeFlight(raw: ApiFlight): NormalizedFlight {
+  const toUtc = (seg?: ApiSegment) => {
+    const time = selectTime(seg ?? {});
+    return time ? DateTime.fromISO(time).toUTC().toISO() ?? "" : "";
+  };
+
   return {
     airline: raw.airline?.name ?? "",
     flightNumber: raw.flight?.iata ?? raw.flight?.number ?? "",
     departure: {
       iata: raw.departure?.iata ?? "",
-      time: selectTime(raw.departure ?? {}) ?? "",
+      time: toUtc(raw.departure),
     },
     arrival: {
       iata: raw.arrival?.iata ?? "",
-      time: selectTime(raw.arrival ?? {}) ?? "",
+      time: toUtc(raw.arrival),
     },
   };
 }

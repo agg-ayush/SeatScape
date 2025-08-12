@@ -32,7 +32,7 @@ function resolveAirport(code: string): Airport | undefined {
 }
 
 export async function fetchFlightByIata(flightIata: string) {
-  const params = new URLSearchParams({ flightIata });
+  const params = new URLSearchParams({ flight_iata: flightIata });
   const res = await fetch(`/api/getFlightStatus?${params.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch flight status");
   return res.json();

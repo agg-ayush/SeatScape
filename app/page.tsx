@@ -4,6 +4,7 @@
 import dynamic from "next/dynamic";
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 import Inputs from "@/components/Inputs";
 import type { InputsSnapshot } from "@/lib/types";
@@ -114,7 +115,15 @@ function Home() {
               path and scenic views.
             </p>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <Link
+              href="/flight"
+              className="text-sm text-zinc-600 dark:text-zinc-300 hover:underline"
+            >
+              Lookup by flight
+            </Link>
+            <ThemeToggle />
+          </div>
         </header>
 
         <Inputs defaults={defaults} loading={loading} onSubmit={handleSubmit} onClearAll={clearAll} />

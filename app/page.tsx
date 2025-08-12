@@ -32,10 +32,10 @@ function Home() {
 
   // Build defaults from the URL (?from=...&to=...&depart=...&arrive=...); otherwise empty
   const defaults = useMemo(() => {
-    const from = (search.get("from") || "").toUpperCase();
-    const to = (search.get("to") || "").toUpperCase();
-    const depart = search.get("depart") || "";
-    const arrive = search.get("arrive") || "";
+    const from = (search?.get("from") || "").toUpperCase();
+    const to = (search?.get("to") || "").toUpperCase();
+    const depart = search?.get("depart") || "";
+    const arrive = search?.get("arrive") || "";
     return { from, to, depart, arrive };
   }, [search]);
 

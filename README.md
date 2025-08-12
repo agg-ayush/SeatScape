@@ -10,6 +10,16 @@ SeatScape helps air travellers choose the perfect window seat. Given the origin,
 npm install
 ```
 
+### Environment variables
+
+Copy the example env file and set your AviationStack API key:
+
+```bash
+cp .env.local.example .env.local
+```
+
+Then edit `.env.local` to add your real `AVIATIONSTACK_API_KEY`. This file is ignored by git, so your key stays private.
+
 ### Run the development server
 
 ```bash

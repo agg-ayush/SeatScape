@@ -10,6 +10,7 @@ import { DateTime } from "luxon";
 import TimezoneSelect from "@/components/TimezoneSelect";
 import PreferenceToggle from "@/components/PreferenceToggle";
 import DateTime24 from "@/components/DateTime24";
+import { fetchFlights, type Flight } from "@/lib/flights";
 
 export type InputsSnapshot = {
   origin: Airport;
@@ -42,6 +43,9 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
   const [error, setError] = useState<string | null>(null);
   const [recent, setRecent] = useState<Recent[]>([]);
   const fromRef = useRef<HTMLInputElement | null>(null);
+  const [flightResults, setFlightResults] = useState<Flight[] | null>(null);
+  const [flightLoading, setFlightLoading] = useState(false);
+  const [flightError, setFlightError] = useState<string | null>(null);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -78,6 +82,11 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
       localStorage.setItem("ss_recent", JSON.stringify(next));
     } catch {}
   }
+  useEffect(() => {
+    setFlightResults(null);
+    setFlightError(null);
+  }, [from, to]);
+
 
   const originAirport = lookup(from);
   const destAirport = lookup(to);
@@ -109,6 +118,43 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
     arriveZoneRef.current = nextZone;
   }, [tzMode, customTZ, originAirport?.tz, destAirport?.tz, depart, arrive, zoneForMode]);
 
+
+  async function searchFlights() {
+    if (!originAirport || !destAirport) return;
+    setFlightLoading(true);
+    setFlightError(null);
+    try {
+      const list = await fetchFlights(originAirport.iata, destAirport.iata);
+      setFlightResults(list);
+    } catch {
+      setFlightError("Failed to load flights.");
+      setFlightResults([]);
+    } finally {
+      setFlightLoading(false);
+    }
+  }
+
+  function handleFlightSelect(f: Flight) {
+    if (!originAirport || !destAirport) return;
+    const departLocal = DateTime.fromISO(f.scheduledDeparture, { zone: f.depTz }).toFormat("yyyy-LL-dd'T'HH:mm");
+    const arriveLocal = DateTime.fromISO(f.scheduledArrival, { zone: f.arrTz }).toFormat("yyyy-LL-dd'T'HH:mm");
+    setDepart(departLocal);
+    setArrive(arriveLocal);
+    setTzMode("origin");
+    departZoneRef.current = f.depTz;
+    arriveZoneRef.current = f.arrTz;
+    onSubmit({
+      origin: originAirport,
+      dest: destAirport,
+      departLocalISO: departLocal,
+      arriveLocalISO: arriveLocal,
+      preference: pref,
+      from,
+      to,
+    });
+    pushRecent({ from, to, depart: departLocal, arrive: arriveLocal });
+    setFlightResults(null);
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -238,6 +284,42 @@ export default function Inputs({ onSubmit, defaults, loading = false, onClearAll
             airports={airports}
           />
       </div>
+        {originAirport && destAirport && (
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={searchFlights}
+              disabled={flightLoading}
+              className="rounded-lg px-3 py-2 border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {flightLoading ? "Searching…" : "Search flights"}
+            </button>
+            {flightError && <p className="text-red-600">{flightError}</p>}
+            {flightResults && (
+              flightResults.length > 0 ? (
+                <ul className="max-h-60 overflow-y-auto divide-y divide-zinc-200 dark:divide-zinc-700 rounded-md border border-zinc-200 dark:border-zinc-700">
+                  {flightResults.map((f) => (
+                    <li key={f.flightCode + f.scheduledDeparture}>
+                      <button
+                        type="button"
+                        onClick={() => handleFlightSelect(f)}
+                        className="w-full text-left px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:outline-none"
+                      >
+                        <div className="font-medium">{f.airline} {f.flightCode}</div>
+                        <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                          {DateTime.fromISO(f.scheduledDeparture, { zone: f.depTz }).toFormat("LLL d HH:mm")} → {DateTime.fromISO(f.scheduledArrival, { zone: f.arrTz }).toFormat("LLL d HH:mm")}
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">No flights found.</p>
+              )
+            )}
+          </div>
+        )}
+
 
       <div className="grid gap-4 md:grid-cols-3">
         <div className="grid gap-4">
